@@ -44,7 +44,12 @@
 │   ├── 01-product-design.md     # 产品方案：用户、竞品、功能优先级、商业模式
 │   ├── 02-technical-architecture.md  # 技术架构：数据模型、AI 流水线、合规
 │   ├── 03-roadmap.md            # 里程碑、MVP 范围、指标体系
+│   ├── 04-license-policy.md     # 许可证策略、操作模型与决策矩阵
 │   └── assets/                  # README 预览图
+├── content/
+│   └── license-manifest.json    # 示例文献的许可证清单
+├── tools/
+│   └── license-check/           # 可执行的许可证校验器 + 测试
 └── prototype/                   # 可运行的前端原型（纯静态，Mock 数据）
     ├── README.md
     ├── index.html
@@ -63,6 +68,13 @@ python3 -m http.server 8080
 ```
 
 也可以直接双击 `prototype/index.html` 打开。
+
+许可证校验器同样是零依赖的 Node 脚本：
+
+```bash
+node tools/license-check/check.mjs content/license-manifest.json
+node --test tools/license-check/check.test.mjs
+```
 
 **原型包含**：信息流卡片、学科/标签筛选、搜索、论文详情（双语摘要、AI 拆解、演示说明、讨论区、思辨问题）、知识库概念卡片、收藏（localStorage）。
 
@@ -92,6 +104,7 @@ python3 -m http.server 8080
 - [产品设计方案（docs/01-product-design.md）](docs/01-product-design.md)
 - [技术架构（docs/02-technical-architecture.md）](docs/02-technical-architecture.md)
 - [路线图（docs/03-roadmap.md）](docs/03-roadmap.md)
+- [许可证策略与校验器（docs/04-license-policy.md）](docs/04-license-policy.md)
 - [原始设计方案（xiaolunwen.txt）](xiaolunwen.txt)
 
 ## 许可证

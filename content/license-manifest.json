@@ -1,0 +1,116 @@
+{
+  "commercial": true,
+  "note": "本清单对应原型中的 9 篇示例文献。许可证状态需在正式入库前逐篇复核，尤其是预印本与出版社版权文献。",
+  "papers": [
+    {
+      "id": "einstein-1905",
+      "title": "关于光的产生与转化的一个启发性观点",
+      "license": "PUBLIC-DOMAIN",
+      "source": "https://doi.org/10.1002/andp.19053220607",
+      "uses": [
+        "display_metadata",
+        "display_abstract",
+        "quote_commentary",
+        "translate_fulltext",
+        "adapt_fulltext",
+        "audio_fulltext",
+        "redistribute_fulltext",
+        "commercial_use"
+      ]
+    },
+    {
+      "id": "ligo-2016",
+      "title": "引力波的直接探测",
+      "license": "CC-BY-3.0",
+      "source": "https://doi.org/10.1103/PhysRevLett.116.061102",
+      "uses": [
+        "display_metadata",
+        "display_abstract",
+        "quote_commentary",
+        "translate_fulltext",
+        "adapt_fulltext",
+        "audio_fulltext",
+        "redistribute_fulltext",
+        "commercial_use"
+      ]
+    },
+    {
+      "id": "alphafold-2021",
+      "title": "基于深度学习的蛋白质结构高精度预测",
+      "license": "CC-BY-4.0",
+      "source": "https://doi.org/10.1038/s41586-021-03819-2",
+      "uses": [
+        "display_metadata",
+        "display_abstract",
+        "quote_commentary",
+        "translate_fulltext",
+        "adapt_fulltext",
+        "audio_fulltext",
+        "redistribute_fulltext",
+        "commercial_use"
+      ]
+    },
+    {
+      "id": "lk99-2023",
+      "title": "铜掺杂铅磷灰石（LK-99）的室温超导声称",
+      "license": "ARXIV-NONEXCLUSIVE",
+      "source": "https://arxiv.org/abs/2307.12008",
+      "note": "预印本未经同行评审；平台只做争议梳理与短引用，不做全文翻译或再分发。",
+      "uses": [
+        "display_metadata",
+        "display_abstract",
+        "quote_commentary"
+      ]
+    },
+    {
+      "id": "watson-crick-1953",
+      "title": "核酸的分子结构——DNA 双螺旋模型",
+      "license": "PROPRIETARY-ABSTRACT-ONLY",
+      "source": "https://doi.org/10.1038/171737a0",
+      "uses": [
+        "display_metadata",
+        "display_abstract"
+      ]
+    },
+    {
+      "id": "penzias-wilson-1965",
+      "title": "一种天线多余温度的测量",
+      "license": "PROPRIETARY-ABSTRACT-ONLY",
+      "source": "https://doi.org/10.1086/148307",
+      "uses": [
+        "display_metadata",
+        "display_abstract"
+      ]
+    },
+    {
+      "id": "tu-1977",
+      "title": "一种新型倍半萜内酯——青蒿素",
+      "license": "PROPRIETARY-ABSTRACT-ONLY",
+      "source": "https://doi.org/10.1360/csb1977-22-3-142",
+      "uses": [
+        "display_metadata",
+        "display_abstract"
+      ]
+    },
+    {
+      "id": "doudna-2012",
+      "title": "一种由双 RNA 引导的 DNA 内切酶及其在细菌适应性免疫中的作用",
+      "license": "PROPRIETARY-ABSTRACT-ONLY",
+      "source": "https://doi.org/10.1126/science.1225829",
+      "uses": [
+        "display_metadata",
+        "display_abstract"
+      ]
+    },
+    {
+      "id": "higgs-1964",
+      "title": "破缺对称性与规范玻色子的质量",
+      "license": "PROPRIETARY-ABSTRACT-ONLY",
+      "source": "https://doi.org/10.1103/PhysRevLett.13.508",
+      "uses": [
+        "display_metadata",
+        "display_abstract"
+      ]
+    }
+  ]
+}

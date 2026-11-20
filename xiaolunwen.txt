@@ -155,3 +155,18 @@ Semantic Scholar、Elicit、Scholarcy 等工具能快速生成摘要、提取要
 
 本方案目前仍属于设计与原型阶段，尚未开展大规模用户调研与成本基准测试。第一，痛点与人群划分主要基于观察与文献分析，后续需通过访谈与问卷验证需求强度；第二，AI 推理与人工复核的成本尚未实测，会员定价与免费额度需以单篇处理成本为依据重新测算；第三，开放获取文献的许可证情形复杂，翻译与演绎的合法性需逐篇判断，必要时应引入法律意见；第四，知识库的结构化效果依赖内容规模，概念卡与论文链接在数量不足时价值有限，需在第二阶段集中补齐。后续工作将围绕原型可用性测试、单篇成本基准、首批文献版权核对与真实用户留存验证展开。
 
+参考文献
+
+[1] Budapest Open Access Initiative. Budapest Open Access Initiative Declaration[EB/OL]. 2002. https://www.budapestopenaccessinitiative.org/read/.
+[2] Creative Commons. About CC Licenses[EB/OL]. https://creativecommons.org/share-your-work/cclicenses/.
+[3] Wilkinson M D, Dumontier M, Aalbersberg I J, et al. The FAIR Guiding Principles for Scientific Data Management and Stewardship[J]. Scientific Data, 2016, 3: 160018. DOI: 10.1038/sdata.2016.18.
+[4] 国家互联网信息办公室, 工业和信息化部, 公安部, 国家广播电视总局. 人工智能生成合成内容标识办法[Z]. 2025.
+[5] 国家互联网信息办公室, 工业和信息化部, 公安部, 国家市场监督管理总局. 互联网信息服务算法推荐管理规定[Z]. 2022.
+[6] 国家互联网信息办公室. 网络信息内容生态治理规定[Z]. 2020.
+[7] UNESCO. UNESCO Recommendation on Open Science[R]. 2021.
+[8] Einstein A. Über einen die Erzeugung und Verwandlung des Lichtes betreffenden heuristischen Gesichtspunkt[J]. Annalen der Physik, 1905, 322(6): 132-148. DOI: 10.1002/andp.19053220607.
+[9] Abbott B P, Abbott R, Abbott T D, et al. Observation of Gravitational Waves from a Binary Black Hole Merger[J]. Physical Review Letters, 2016, 116(6): 061102. DOI: 10.1103/PhysRevLett.116.061102.
+[10] Jumper J, Evans R, Pritzel A, et al. Highly Accurate Protein Structure Prediction with AlphaFold[J]. Nature, 2021, 596: 583-589. DOI: 10.1038/s41586-021-03819-2.
+[11] Watson J D, Crick F H C. Molecular Structure of Nucleic Acids: A Structure for Deoxyribose Nucleic Acid[J]. Nature, 1953, 171: 737-738. DOI: 10.1038/171737a0.
+[12] Lee S, Kim J H, et al. The First Room-Temperature Ambient-Pressure Superconductor[EB/OL]. arXiv:2307.12008, 2023.（预印本，未经同行评审，仅作争议案例引用）
+
