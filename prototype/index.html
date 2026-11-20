@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>小论文 · 大智慧 — 可溯源的科学知识库</title>
+  <meta name="description" content="以开放获取论文为锚点的科学知识库与科普社区原型">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">跳到主要内容</a>
+
+  <header class="topbar">
+    <a class="brand" href="#/discover" aria-label="返回发现页">
+      <span class="brand-mark" aria-hidden="true">小</span>
+      <span class="brand-text">小论文 · 大智慧</span>
+    </a>
+
+    <label class="search" for="searchInput">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <input id="searchInput" type="search" placeholder="搜索论文、作者、概念，如：引力波" autocomplete="off">
+    </label>
+
+    <nav class="nav" aria-label="主导航">
+      <button class="nav-btn is-active" data-view="discover">发现</button>
+      <button class="nav-btn" data-view="knowledge">知识库</button>
+      <button class="nav-btn fav-btn" id="favBtn" aria-pressed="false">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20s-7-4.5-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.5-7 10-7 10Z"/></svg>
+        收藏<span class="fav-count" id="favCount">0</span>
+      </button>
+    </nav>
+  </header>
+
+  <main id="main">
+    <!-- 发现页 -->
+    <section id="discoverView">
+      <div class="hero">
+        <div class="hero-copy">
+          <p class="eyebrow">开放获取 · 可溯源 · 重思辨</p>
+          <h1>读懂一篇论文，<br>胜过刷过十条结论。</h1>
+          <p class="hero-sub">从原文出发，用 AI 拆开论证的每一层：研究假设、实验设计、证据、局限与争议。每一条解读，都能回到论文的原始段落。</p>
+          <div class="hero-chips">
+            <span>诺奖经典溯源</span><span>中英双语精读</span><span>简化原理演示</span><span>理性讨论社区</span>
+          </div>
+        </div>
+        <aside class="hero-card" aria-label="数据概览">
+          <div class="hero-stat"><strong id="statPapers">—</strong><span>篇可溯源文献</span></div>
+          <div class="hero-stat"><strong>100%</strong><span>解读附带原文出处</span></div>
+          <div class="hero-stat"><strong id="statConcepts">—</strong><span>张概念卡</span></div>
+          <p class="hero-note">原型演示数据，非真实平台统计</p>
+        </aside>
+      </div>
+
+      <div class="filter-bar" role="toolbar" aria-label="内容筛选">
+        <div class="filter-group" id="fieldFilters" aria-label="按学科筛选"></div>
+        <div class="filter-group" id="tagFilters" aria-label="按内容类型筛选"></div>
+        <label class="sort">
+          <span>排序</span>
+          <select id="sortSelect">
+            <option value="featured">推荐</option>
+            <option value="year">最新年份</option>
+            <option value="citations">引用最多</option>
+          </select>
+        </label>
+      </div>
+
+      <div class="result-head">
+        <h2 id="feedTitle">发现</h2>
+        <p id="resultCount"></p>
+      </div>
+      <div id="feed" class="feed" aria-live="polite"></div>
+    </section>
+
+    <!-- 知识库页 -->
+    <section id="knowledgeView" hidden>
+      <div class="section-head">
+        <p class="eyebrow">KNOWLEDGE BASE</p>
+        <h1>知识库</h1>
+        <p class="section-sub">论文不是孤立的文章。概念、证据与争议在这里互相链接——你可以从一张概念卡出发，追溯支撑它的原始研究。</p>
+      </div>
+
+      <h2 class="sub-head">概念卡 <span id="conceptCount"></span></h2>
+      <div id="conceptGrid" class="concept-grid"></div>
+
+      <h2 class="sub-head">专题合集</h2>
+      <div id="topicGrid" class="topic-grid"></div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+      <div>
+        <strong>小论文 · 大智慧</strong>
+        <p>可溯源的科学知识库 × 学术科普社区</p>
+      </div>
+      <p class="footer-note">本原型仅用于交互演示。平台只做科普解读，不承担学术仲裁职能；内容为科普简化版本，不用于判定论文真伪。</p>
+      <p class="footer-ai">AI 生成内容均已标识 · 原始结论以期刊与作者原文为准</p>
+    </div>
+  </footer>
+
+  <div class="overlay" id="detailOverlay" hidden>
+    <article class="detail-panel" id="detailPanel" role="dialog" aria-modal="true" aria-label="论文详情"></article>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script src="js/data.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
