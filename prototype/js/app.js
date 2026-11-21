@@ -5,9 +5,9 @@
 (function () {
   "use strict";
 
-  const DATA = window.DATA;
-  const papers = DATA.papers;
-  const byId = Object.fromEntries(papers.map(p => [p.id, p]));
+  let DATA = window.DATA;
+  let papers = DATA.papers;
+  let byId = Object.fromEntries(papers.map(p => [p.id, p]));
 
   const STORAGE_SAVED = "xlw:saved";
   const STORAGE_COMMENTS = "xlw:comments:";
@@ -26,6 +26,7 @@
     sort: "featured",
     favOnly: false,
     topic: null,
+    apiMode: false,
     saved: new Set(asArray(readJSON(STORAGE_SAVED, [])))
   };
 
@@ -48,6 +49,7 @@
     statConcepts: document.getElementById("statConcepts"),
     overlay: document.getElementById("detailOverlay"),
     detail: document.getElementById("detailPanel"),
+    dataSource: document.getElementById("dataSource"),
     toast: document.getElementById("toast")
   };
 
@@ -71,6 +73,72 @@
 
   function asArray(value) {
     return Array.isArray(value) ? value : [];
+  }
+
+  /* ---------- 数据加载：API 优先，静态数据兜底 ---------- */
+
+  function apiPaperToLocal(p) {
+    const license = p.license || {};
+    return {
+      id: p.id,
+      titleZh: (p.title && p.title.zh) || p.id,
+      titleEn: (p.title && p.title.en) || "",
+      authors: p.authors || "",
+      journal: p.journal || "",
+      year: p.year,
+      citations: p.citations || 0,
+      field: p.field || "综合",
+      nobel: p.nobel || null,
+      tag: p.tag || "logic",
+      formula: p.formula || "",
+      link: p.link || "#",
+      originalLang: p.originalLanguage || "en",
+      license: {
+        spdx: license.code || "",
+        code: license.label || license.code || "未标注",
+        note: license.note || "",
+        deep: Boolean(license.allowed && license.allowed.quote_commentary && license.allowed.quote_commentary.allowed),
+        allowed: license.allowed || null
+      },
+      abstractZh: (p.abstracts && p.abstracts.zh && p.abstracts.zh.text) || "",
+      abstractEn: (p.abstracts && p.abstracts.en && p.abstracts.en.text) || "",
+      interpretation: p.interpretation || null,
+      demo: p.demo || null,
+      thinking: p.thinking || []
+    };
+  }
+
+  function applyData(data) {
+    DATA = data;
+    papers = asArray(DATA.papers);
+    byId = Object.fromEntries(papers.map(p => [p.id, p]));
+  }
+
+  async function loadData() {
+    if (location.protocol === "file:") {
+      return { mode: "static", data: window.DATA };
+    }
+    try {
+      const response = await fetch("/api/bootstrap", {
+        cache: "no-store",
+        headers: { Accept: "application/json" }
+      });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const api = await response.json();
+      if (!Array.isArray(api.papers) || !api.papers.length) throw new Error("empty dataset");
+      return {
+        mode: "api",
+        data: {
+          papers: api.papers.map(apiPaperToLocal),
+          concepts: asArray(api.concepts),
+          topics: asArray(api.topics),
+          seedComments: api.comments && typeof api.comments === "object" ? api.comments : {}
+        }
+      };
+    } catch (error) {
+      console.warn("API 不可用，回退到本地静态数据：", error.message);
+      return { mode: "static", data: window.DATA };
+    }
   }
 
   function esc(value) {
@@ -272,8 +340,9 @@
   }
 
   function commentsFor(paperId) {
-    const seeded = asArray(DATA.seedComments[paperId]).map(c => ({ ...c, seeded: true }));
-    const local = asArray(readJSON(STORAGE_COMMENTS + paperId, []));
+    const all = DATA.seedComments || {};
+    const seeded = asArray(all[paperId]).map(c => ({ ...c, seeded: true }));
+    const local = state.apiMode ? [] : asArray(readJSON(STORAGE_COMMENTS + paperId, []));
     return [...seeded, ...local];
   }
 
@@ -312,6 +381,38 @@
 
   function copyIcon() {
     return `<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>`;
+  }
+
+  function capabilitySection(p) {
+    const allowed = p.license && p.license.allowed;
+    if (!allowed) return "";
+    const items = [
+      ["translate_fulltext", "全文翻译"],
+      ["audio_fulltext", "全文音频"],
+      ["adapt_fulltext", "改编 / 演示"],
+      ["redistribute_fulltext", "再分发全文"],
+      ["commercial_use", "商业使用"]
+    ];
+
+    const cards = items.map(([key, label]) => {
+      const item = allowed[key] || {};
+      const ok = Boolean(item.allowed);
+      return `<div class="cap ${ok ? "is-ok" : "is-no"}">
+        <span class="cap-icon" aria-hidden="true">${ok ? "✓" : "✕"}</span>
+        <div>
+          <strong>${esc(label)}</strong>
+          <p>${esc(item.reason || (ok ? "允许" : "不允许"))}</p>
+          ${ok && item.legalReview ? '<span class="cap-review">需法务复核</span>' : ""}
+        </div>
+      </div>`;
+    }).join("");
+
+    return `
+      <section class="detail-section">
+        <h3>许可证能力 <span class="hint">${esc(p.license.code)} · 由服务端规则下发</span></h3>
+        <div class="cap-grid">${cards}</div>
+        <p class="form-note" style="margin:10px 0 0">受限能力在界面上直接隐藏或禁用；当前展示的是规则判定结果，不是法律意见。</p>
+      </section>`;
   }
 
   function detailHTML(p) {
@@ -390,6 +491,7 @@
       </div>
       <div class="detail-body">
         ${abstractSection}
+        ${capabilitySection(p)}
         ${interpSection}
         ${demoSection}
         ${thinkingSection}
@@ -493,7 +595,20 @@
 
   /* ---------- 评论 ---------- */
 
-  function submitComment() {
+  function refreshCommentArea(p) {
+    const holder = document.createElement("div");
+    setHTML(holder, commentsHTML(p));
+    const newList = holder.querySelector("#commentList");
+    const newForm = holder.querySelector("#commentForm");
+    const oldList = els.detail.querySelector("#commentList");
+    const oldForm = els.detail.querySelector("#commentForm");
+    if (oldList && newList) oldList.replaceWith(newList);
+    if (oldForm && newForm) oldForm.replaceWith(newForm);
+    const count = els.detail.querySelector("#commentCount");
+    if (count) count.textContent = `${commentsFor(p.id).length} 条`;
+  }
+
+  async function submitComment() {
     const paperId = els.detail.dataset.paperId;
     const p = byId[paperId];
     const form = els.detail.querySelector("#commentForm");
@@ -506,27 +621,49 @@
       return;
     }
 
-    const key = STORAGE_COMMENTS + p.id;
-    const local = asArray(readJSON(key, []));
-    local.push({
-      author: "我",
-      time: new Date().toLocaleString("zh-CN", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" }),
-      body
-    });
-    writeJSON(key, local);
+    if (state.apiMode) {
+      const button = form.querySelector("button[type=submit]");
+      if (button) button.disabled = true;
+      try {
+        const response = await fetch(`/api/papers/${encodeURIComponent(p.id)}/comments`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ author: "我", body })
+        });
+        if (!response.ok) {
+          const error = await response.json().catch(() => ({}));
+          throw new Error((error.error && error.error.message) || "发布失败");
+        }
+        const listResponse = await fetch(`/api/papers/${encodeURIComponent(p.id)}/comments`, {
+          cache: "no-store"
+        });
+        if (!listResponse.ok) throw new Error("评论列表刷新失败");
+        const listData = await listResponse.json();
+        DATA.seedComments = DATA.seedComments || {};
+        DATA.seedComments[p.id] = asArray(listData.comments).map(comment => ({
+          author: comment.author,
+          time: comment.timeLabel || comment.createdAt,
+          body: comment.body
+        }));
+      } catch (error) {
+        toast(error.message);
+        return;
+      } finally {
+        if (button) button.disabled = false;
+      }
+    } else {
+      const key = STORAGE_COMMENTS + p.id;
+      const local = asArray(readJSON(key, []));
+      local.push({
+        author: "我",
+        time: new Date().toLocaleString("zh-CN", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" }),
+        body
+      });
+      writeJSON(key, local);
+    }
 
-    const holder = document.createElement("div");
-    setHTML(holder, commentsHTML(p));
-    const newList = holder.querySelector("#commentList");
-    const newForm = holder.querySelector("#commentForm");
-    const oldList = els.detail.querySelector("#commentList");
-    const oldForm = els.detail.querySelector("#commentForm");
-    if (oldList && newList) oldList.replaceWith(newList);
-    if (oldForm && newForm) oldForm.replaceWith(newForm);
-    const count = els.detail.querySelector("#commentCount");
-    if (count) count.textContent = `${commentsFor(p.id).length} 条`;
-
-    toast("已发布（原型为本地存储）");
+    refreshCommentArea(p);
+    toast(state.apiMode ? "已发布" : "已发布（本地存储）");
   }
 
   /* ---------- 事件 ---------- */
@@ -663,9 +800,19 @@
 
   /* ---------- 启动 ---------- */
 
-  function init() {
+  async function init() {
+    const loaded = await loadData();
+    applyData(loaded.data);
+    state.apiMode = loaded.mode === "api";
+
+    if (els.dataSource) {
+      els.dataSource.textContent = state.apiMode
+        ? "数据来源：API + SQLite · 许可证能力由服务端下发"
+        : "数据来源：本地静态示例 · 使用内置许可证提示";
+    }
+
     els.statPapers.textContent = String(papers.length);
-    els.statConcepts.textContent = String(DATA.concepts.length);
+    els.statConcepts.textContent = String(asArray(DATA.concepts).length);
     renderFilters();
     renderConcepts();
     renderTopics();
@@ -675,5 +822,8 @@
     route();
   }
 
-  init();
+  init().catch(error => {
+    console.error(error);
+    setHTML(els.feed, `<div class="empty"><strong>页面初始化失败</strong>请刷新重试，或检查 API 是否可用。</div>`);
+  });
 })();

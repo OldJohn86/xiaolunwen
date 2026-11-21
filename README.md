@@ -100,8 +100,11 @@ node --test server/api.test.mjs
 
 - **入库**：`server/ingest.mjs` 读取同一份原型数据，用许可证校验器计算每篇论文允许的操作；被拒绝的能力（商业使用、改编等）不会写入可展示字段，并记录到 `ingest_log`。
 - **API**：`server/server.mjs` 暴露 `/api/papers`、`/api/papers/:id`、`/api/concepts`、`/api/topics`、讨论读写与 `/api/license/:code`。
-- **能力下发**：每条内容返回 `license.allowed`，前端据此隐藏翻译、音频、商业入口。
+- **能力下发**：每条内容返回 `license.allowed`，前端据此隐藏翻译、音频、商业入口，并在详情页展示"许可证能力"面板。
+- **前端接入**：由 `server/` 托管时，原型优先从 `/api/bootstrap` 取数并读写讨论；直接打开静态文件或 API 不可用时自动回退到本地示例数据。
 - **存储**：Node 22 内置 SQLite（实验特性），正式环境按技术方案切换 PostgreSQL。
+
+![许可证能力面板：预印本案例](docs/assets/preview-license.jpg)
 
 ```bash
 curl http://127.0.0.1:8787/api/papers/einstein-1905

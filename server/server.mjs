@@ -97,6 +97,71 @@ function selectPaper(db, id) {
   return db.prepare("SELECT * FROM papers WHERE id = ?").get(id);
 }
 
+function paperToCoreJson(paper) {
+  const interpretation = safeParse(paper.interpretation_json, null);
+  return {
+    id: paper.id,
+    title: { zh: paper.title_zh, en: paper.title_en },
+    authors: paper.authors,
+    journal: paper.journal,
+    year: paper.year,
+    citations: paper.citations,
+    field: paper.field,
+    nobel: paper.nobel,
+    tag: paper.tag,
+    formula: paper.formula,
+    link: paper.link,
+    originalLanguage: paper.original_lang || "en",
+    abstracts: {
+      zh: paper.abstract_zh ? { kind: "platform_summary", text: paper.abstract_zh } : null,
+      en: paper.abstract_en ? { kind: "platform_summary", text: paper.abstract_en } : null
+    },
+    license: {
+      code: paper.license_code,
+      label: paper.license_label,
+      note: paper.license_note,
+      allowed: safeParse(paper.license_allowed_json, {})
+    },
+    interpretation,
+    demo: safeParse(paper.demo_json, null),
+    thinking: safeParse(paper.thinking_json, []),
+    aiGenerated: Boolean(interpretation)
+  };
+}
+
+function listConceptsRaw(db) {
+  return db.prepare("SELECT * FROM concepts ORDER BY id").all().map(row => ({
+    id: row.id,
+    name: row.name,
+    en: row.name_en,
+    definition: row.definition,
+    papers: safeParse(row.papers_json, [])
+  }));
+}
+
+function listTopicsRaw(db) {
+  return db.prepare("SELECT * FROM topics ORDER BY id").all().map(row => ({
+    id: row.id,
+    name: row.name,
+    desc: row.description,
+    tone: row.tone,
+    papers: safeParse(row.papers_json, [])
+  }));
+}
+
+function groupComments(db) {
+  const grouped = {};
+  for (const row of db.prepare("SELECT * FROM comments ORDER BY id").all()) {
+    if (!grouped[row.paper_id]) grouped[row.paper_id] = [];
+    grouped[row.paper_id].push({
+      author: row.author,
+      body: row.body,
+      time: row.time_label || row.created_at
+    });
+  }
+  return grouped;
+}
+
 function paperMatchesConcept(db, paperId) {
   const rows = db.prepare("SELECT id, name, papers_json FROM concepts").all();
   return rows
@@ -118,6 +183,21 @@ async function handleApi(db, req, res, url) {
       papers: paperCount,
       comments: commentCount,
       time: new Date().toISOString()
+    });
+  }
+
+  if (req.method === "GET" && url.pathname === "/api/bootstrap") {
+    const rows = db.prepare(`
+      SELECT * FROM papers
+      ORDER BY rowid
+    `).all();
+
+    return sendJson(res, 200, {
+      generatedAt: new Date().toISOString(),
+      papers: rows.map(paperToCoreJson),
+      concepts: listConceptsRaw(db),
+      topics: listTopicsRaw(db),
+      comments: groupComments(db)
     });
   }
 
@@ -149,7 +229,7 @@ async function handleApi(db, req, res, url) {
              (interpretation_json IS NOT NULL) AS has_interpretation
       FROM papers
       ${where}
-      ORDER BY CASE WHEN nobel IS NULL THEN 1 ELSE 0 END, year DESC
+      ORDER BY rowid
     `).all(...params);
 
     return sendJson(res, 200, { total: rows.length, papers: rows.map(paperRowToListItem) });
@@ -187,37 +267,9 @@ async function handleApi(db, req, res, url) {
     const paper = selectPaper(db, segments[2]);
     if (!paper) return sendError(res, 404, "论文不存在");
 
-    const interpretation = safeParse(paper.interpretation_json, null);
-    const originalLang = paper.original_lang || "en";
-
     return sendJson(res, 200, {
       paper: {
-        id: paper.id,
-        title: { zh: paper.title_zh, en: paper.title_en },
-        authors: paper.authors,
-        journal: paper.journal,
-        year: paper.year,
-        citations: paper.citations,
-        field: paper.field,
-        nobel: paper.nobel,
-        tag: paper.tag,
-        formula: paper.formula,
-        link: paper.link,
-        originalLanguage: originalLang,
-        abstracts: {
-          zh: paper.abstract_zh ? { kind: "platform_summary", text: paper.abstract_zh } : null,
-          en: paper.abstract_en ? { kind: "platform_summary", text: paper.abstract_en } : null
-        },
-        license: {
-          code: paper.license_code,
-          label: paper.license_label,
-          note: paper.license_note,
-          allowed: safeParse(paper.license_allowed_json, {})
-        },
-        interpretation,
-        demo: safeParse(paper.demo_json, null),
-        thinking: safeParse(paper.thinking_json, []),
-        aiGenerated: Boolean(interpretation),
+        ...paperToCoreJson(paper),
         concepts: paperMatchesConcept(db, paper.id),
         comments: listComments(db, paper.id).map(commentRowToJson)
       }

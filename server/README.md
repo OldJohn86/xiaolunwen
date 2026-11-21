@@ -42,6 +42,7 @@ node server/server.mjs
 | 方法 | 路径 | 说明 |
 | --- | --- | --- |
 | GET | `/api/health` | 健康检查与内容计数 |
+| GET | `/api/bootstrap` | 前端聚合数据：论文、概念、专题、讨论 |
 | GET | `/api/papers?field=&tag=&q=` | 论文列表（不含解读正文） |
 | GET | `/api/papers/:id` | 论文详情、许可证能力、解读、讨论 |
 | GET | `/api/papers/:id/comments` | 讨论列表 |

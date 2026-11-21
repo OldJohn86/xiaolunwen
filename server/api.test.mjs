@@ -147,6 +147,29 @@ describe("M1 API 与入库流水线", () => {
     assert.equal(missing.status, 404);
   });
 
+  it("bootstrap 聚合接口返回前端所需结构与许可证能力", async () => {
+    const result = await api("/api/bootstrap");
+    assert.equal(result.status, 200);
+    assert.equal(result.payload.papers.length, 9);
+    assert.equal(result.payload.concepts.length, 10);
+    assert.equal(result.payload.topics.length, 5);
+    assert.deepEqual(Object.keys(result.payload.comments).sort(), [
+      "einstein-1905",
+      "ligo-2016",
+      "lk99-2023"
+    ]);
+
+    const einstein = result.payload.papers.find(paper => paper.id === "einstein-1905");
+    assert.equal(result.payload.papers[0].id, "einstein-1905");
+    assert.equal(einstein.license.allowed.translate_fulltext.allowed, true);
+    assert.equal(einstein.interpretation.length, 5);
+    assert.equal(einstein.abstracts.zh.kind, "platform_summary");
+
+    const lk99 = result.payload.papers.find(paper => paper.id === "lk99-2023");
+    assert.equal(lk99.license.allowed.commercial_use.allowed, false);
+    assert.equal(lk99.license.allowed.adapt_fulltext.allowed, false);
+  });
+
   it("概念、专题与许可证查询接口", async () => {
     const concepts = await api("/api/concepts");
     assert.equal(concepts.payload.concepts.length, 10);
