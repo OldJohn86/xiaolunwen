@@ -24,12 +24,20 @@ const demo = require(resolve(repoRoot, "prototype/js/data.js"));
 const DEFAULT_DATASET = process.env.XLW_TOP50_DATASET || "";
 const DEFAULT_OUT = resolve(repoRoot, "content/local/top50.json");
 const DETAILS_PATH = resolve(here, "top50-details.json");
+const INTERPRETATIONS_PATH = resolve(here, "top50-interpretations.json");
 
 let details = {};
 try {
   details = JSON.parse(readFileSync(DETAILS_PATH, "utf8"));
 } catch {
   console.warn("未找到 top50-details.json，将使用占位摘要");
+}
+
+let interpretations = {};
+try {
+  interpretations = JSON.parse(readFileSync(INTERPRETATIONS_PATH, "utf8"));
+} catch {
+  /* 可选文件：没有结构化解读时仅展示摘要 */
 }
 
 const args = process.argv.slice(2);
@@ -221,7 +229,7 @@ for (const paper of papers) {
     abstractZh: detail.abstractZh || `该论文是“${paper.topic || "人工智能"}”方向的代表性工作，主题为“${paper.zh_title || paper.title}”。完整中文摘要与论证拆解待许可证核对与编辑复核后开放。`,
     abstractEn: "",
     formula: detail.formula || "",
-    interpretation: detail.interpretation || null,
+    interpretation: detail.interpretation || interpretations[String(paper.rank)] || null,
     demo: null,
     thinking: detail.thinking || [
       "这篇论文试图解决什么问题，为什么重要？",

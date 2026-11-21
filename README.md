@@ -157,7 +157,7 @@ PORT=8123 node server/server.mjs
 
 生成 `content/local/top50.json` 后，入库会自动合并：**演示语料 18 篇 + 本地新增 41 篇 = 59 篇**，并新增「AI 必读 Top50」专题。9 篇重叠论文复用已有条目，不重复导入。期刊名与开放许可优先采用 OpenAlex；arXiv 论文标记 `ARXIV-NONEXCLUSIVE`，其余未确认许可的统一标记 `UNVERIFIED`。
 
-其中 ResNet、Transformer、Adam、BERT、ViT、GPT-3 六篇提供结构化论证拆解（研究假设 / 实验设计 / 核心结论 / 研究局限 / 学界争议），统一标注为「AI 辅助整理 · 待复核」；解读为平台原创概述，不是全文翻译。
+其中 17 篇（全部 arXiv / CC 许可）提供结构化论证拆解（研究假设 / 实验设计 / 核心结论 / 研究局限 / 学界争议），覆盖 ResNet、Transformer、Adam、BERT、ViT、GPT-3、VGG、scikit-learn、GPT-4、VAE、Word2Vec、GCN、BatchNorm、RoBERTa、PPO、AdamW、MobileNets，统一标注为「AI 辅助整理 · 待复核」；解读为平台原创概述，不是全文翻译。
 
 > 本地语料不会提交；缺少 `content/local/top50.json` 时，入库仍只包含演示语料 18 篇。
 
