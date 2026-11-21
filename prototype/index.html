@@ -24,6 +24,7 @@
     <nav class="nav" aria-label="主导航">
       <button class="nav-btn is-active" data-view="discover">发现</button>
       <button class="nav-btn" data-view="knowledge">知识库</button>
+      <button class="nav-btn" data-view="review" id="reviewNav" hidden>复核</button>
       <button class="nav-btn fav-btn" id="favBtn" aria-pressed="false">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20s-7-4.5-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.5-7 10-7 10Z"/></svg>
         收藏<span class="fav-count" id="favCount">0</span>
@@ -84,6 +85,18 @@
 
       <h2 class="sub-head">专题合集</h2>
       <div id="topicGrid" class="topic-grid"></div>
+    </section>
+
+    <!-- 复核工作台（仅 API 模式） -->
+    <section id="reviewView" hidden>
+      <div class="section-head">
+        <p class="eyebrow">REVIEW QUEUE</p>
+        <h1>复核工作台</h1>
+        <p class="section-sub">集中处理许可证待核对、需法务复核与被拒绝的能力。更新许可证会立即重算可用能力，并记录复核日志。</p>
+      </div>
+      <div id="reviewSummary" class="review-summary"></div>
+      <div class="filter-group" id="reviewFilters" aria-label="复核筛选"></div>
+      <div id="reviewList" class="review-list" aria-live="polite"></div>
     </section>
   </main>
 

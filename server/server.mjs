@@ -15,7 +15,7 @@ import { createReadStream, statSync } from "node:fs";
 import { extname, resolve, sep, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import process from "node:process";
-import { ACTIONS, evaluateLicense } from "../tools/license-check/check.mjs";
+import { ACTIONS, LICENSES, evaluateLicense, normalizeLicense } from "../tools/license-check/check.mjs";
 import { createDb, insertComment, listComments } from "./db.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -172,6 +172,61 @@ function paperMatchesConcept(db, paperId) {
     .map(row => ({ id: row.id, name: row.name }));
 }
 
+function buildAllowedActions(licenseCode, commercial = true) {
+  const map = {};
+  for (const action of ACTIONS) {
+    const result = evaluateLicense(licenseCode, action, { commercial });
+    map[action] = {
+      allowed: result.allowed,
+      code: result.code,
+      reason: result.reason,
+      legalReview: Boolean(result.legalReview),
+      attribution: Boolean(result.attribution),
+      shareAlike: Boolean(result.shareAlike)
+    };
+  }
+  return map;
+}
+
+function reviewItemForRow(db, row) {
+  const allowed = safeParse(row.license_allowed_json, {});
+  const legalReviewActions = Object.entries(allowed)
+    .filter(([, value]) => value.allowed && value.legalReview)
+    .map(([action]) => action);
+  const deniedActions = Object.entries(allowed)
+    .filter(([, value]) => !value.allowed)
+    .map(([action, value]) => ({ action, reason: value.reason, code: value.code }));
+
+  return {
+    id: row.id,
+    title: { zh: row.title_zh, en: row.title_en },
+    authors: row.authors,
+    journal: row.journal,
+    year: row.year,
+    field: row.field,
+    link: row.link,
+    license: {
+      code: row.license_code,
+      label: row.license_label,
+      note: row.license_note
+    },
+    review: {
+      status: row.review_status || "pending",
+      note: row.review_note || null,
+      reviewedAt: row.reviewed_at || null
+    },
+    flags: {
+      unverified: row.license_code === "UNVERIFIED",
+      legalReview: legalReviewActions.length > 0,
+      denied: deniedActions.length > 0
+    },
+    legalReviewActions,
+    deniedActions,
+    allowedCount: Object.values(allowed).filter(item => item.allowed).length,
+    totalActions: ACTIONS.length
+  };
+}
+
 async function handleApi(db, req, res, url) {
   const segments = url.pathname.split("/").filter(Boolean); // ["api", ...]
 
@@ -198,6 +253,98 @@ async function handleApi(db, req, res, url) {
       concepts: listConceptsRaw(db),
       topics: listTopicsRaw(db),
       comments: groupComments(db)
+    });
+  }
+
+  if (req.method === "GET" && url.pathname === "/api/review/queue") {
+    const filter = url.searchParams.get("filter") || "all";
+    const rows = db.prepare("SELECT * FROM papers ORDER BY rowid").all();
+    let items = rows.map(row => reviewItemForRow(db, row));
+
+    const summary = {
+      total: items.length,
+      unverified: items.filter(item => item.flags.unverified).length,
+      legalReview: items.filter(item => item.flags.legalReview).length,
+      denied: items.filter(item => item.flags.denied).length,
+      reviewed: items.filter(item => item.review.status !== "pending").length
+    };
+
+    if (filter === "unverified") items = items.filter(item => item.flags.unverified);
+    else if (filter === "legal_review") items = items.filter(item => item.flags.legalReview);
+    else if (filter === "denied") items = items.filter(item => item.flags.denied);
+    else if (filter === "reviewed") items = items.filter(item => item.review.status !== "pending");
+
+    const score = item => item.flags.unverified ? 0 : item.flags.legalReview ? 1 : item.flags.denied ? 2 : 3;
+    items.sort((a, b) => score(a) - score(b) || a.id.localeCompare(b.id));
+
+    return sendJson(res, 200, { filter, summary, items });
+  }
+
+  if (req.method === "POST" && segments[1] === "review" && segments[2] && !segments[3]) {
+    const row = selectPaper(db, segments[2]);
+    if (!row) return sendError(res, 404, "论文不存在");
+
+    let payload;
+    try {
+      payload = await readJsonBody(req);
+    } catch (error) {
+      return sendError(res, error.status || 400, error.message);
+    }
+
+    const decision = String(payload.decision || (payload.licenseCode ? "update_license" : "approve")).trim();
+    if (!["approve", "update_license", "reject"].includes(decision)) {
+      return sendError(res, 400, `未知复核决定：${decision}`);
+    }
+
+    let newCode = row.license_code;
+    if (payload.licenseCode) {
+      newCode = normalizeLicense(payload.licenseCode);
+      if (!Object.prototype.hasOwnProperty.call(LICENSES, newCode)) {
+        return sendError(res, 400, `未收录的许可证：${newCode}`);
+      }
+    }
+    if (decision === "update_license" && !payload.licenseCode) {
+      return sendError(res, 400, "更新许可证需要提供 licenseCode");
+    }
+
+    const now = new Date().toISOString();
+    const note = payload.note ? String(payload.note).trim().slice(0, 500) : null;
+    const reviewStatus = decision === "reject" ? "rejected" : "reviewed";
+    const allowed = buildAllowedActions(newCode, true);
+    const label = LICENSES[newCode] ? LICENSES[newCode].label : row.license_label;
+    const licenseNote = payload.licenseNote
+      ? String(payload.licenseNote).trim().slice(0, 300)
+      : newCode === row.license_code
+        ? row.license_note
+        : `${label}（人工复核更新）`;
+
+    db.prepare(`
+      UPDATE papers
+      SET license_code = ?, license_label = ?, license_allowed_json = ?,
+          license_note = ?, review_status = ?, review_note = ?, reviewed_at = ?
+      WHERE id = ?
+    `).run(
+      newCode,
+      label,
+      JSON.stringify(allowed),
+      licenseNote,
+      reviewStatus,
+      note,
+      now,
+      row.id
+    );
+
+    db.prepare(`
+      INSERT INTO review_log (paper_id, decision, previous_license, new_license, note, created_at)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `).run(row.id, decision, row.license_code, newCode, note, now);
+
+    const updated = selectPaper(db, row.id);
+    return sendJson(res, 200, {
+      item: reviewItemForRow(db, updated),
+      decision,
+      previousLicense: row.license_code,
+      newLicense: newCode
     });
   }
 

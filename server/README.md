@@ -50,6 +50,8 @@ node server/server.mjs
 | GET | `/api/concepts` | 概念卡与关联论文 |
 | GET | `/api/topics` | 专题合集 |
 | GET | `/api/license/:code?action=&commercial=` | 查询某个许可证的操作判定 |
+| GET | `/api/review/queue?filter=` | 复核队列：all / unverified / legal_review / denied / reviewed |
+| POST | `/api/review/:paperId` | 复核决定：approve / reject / update_license，可附 note 与 licenseCode |
 
 示例：
 
@@ -69,7 +71,7 @@ node --test tools/license-check/check.test.mjs
 
 ## 已知边界
 
-- 这是 M1 骨架，不是生产后端：无账号、无鉴权、无审核队列、无速率限制。
+- 这是 M1/M2 骨架，不是生产后端：无账号、无鉴权、无速率限制；复核接口尤其不能直接暴露到公网。
 - 使用 `node:sqlite`（Node 22 内置，实验特性），正式环境按技术方案切换 PostgreSQL。
 - 讨论区直接写库，正式上线需先审后发、敏感词与模型审核。
 - 摘要为平台整理文本，不是逐句翻译；全文翻译能力受许可证控制。

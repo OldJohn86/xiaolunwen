@@ -18,6 +18,38 @@
     controversy: "学界存在争议"
   };
 
+  const ACTION_LABEL = {
+    display_metadata: "展示元数据",
+    display_abstract: "展示摘要",
+    quote_commentary: "短引用 + 评论",
+    translate_fulltext: "全文翻译",
+    adapt_fulltext: "改编 / 演示",
+    audio_fulltext: "全文音频",
+    redistribute_fulltext: "再分发全文",
+    commercial_use: "商业使用"
+  };
+
+  const REVIEW_LICENSES = [
+    ["UNVERIFIED", "待核对（仅摘要）"],
+    ["PROPRIETARY-ABSTRACT-ONLY", "出版社版权（仅摘要）"],
+    ["ARXIV-NONEXCLUSIVE", "arXiv 非独占"],
+    ["CC-BY-4.0", "CC BY 4.0"],
+    ["CC-BY-3.0", "CC BY 3.0"],
+    ["CC-BY-SA-4.0", "CC BY-SA 4.0"],
+    ["CC-BY-NC-4.0", "CC BY-NC 4.0"],
+    ["CC-BY-NC-SA-4.0", "CC BY-NC-SA 4.0"],
+    ["CC-BY-ND-4.0", "CC BY-ND 4.0"],
+    ["CC-BY-NC-ND-4.0", "CC BY-NC-ND 4.0"],
+    ["CC0-1.0", "CC0 1.0"],
+    ["PUBLIC-DOMAIN", "公有领域"]
+  ];
+
+  const REVIEW_STATUS_LABEL = {
+    pending: "待复核",
+    reviewed: "已复核",
+    rejected: "已驳回"
+  };
+
   const state = {
     view: "discover",
     field: "全部",
@@ -27,12 +59,18 @@
     favOnly: false,
     topic: null,
     apiMode: false,
+    reviewFilter: "all",
     saved: new Set(asArray(readJSON(STORAGE_SAVED, [])))
   };
 
   const els = {
     discover: document.getElementById("discoverView"),
     knowledge: document.getElementById("knowledgeView"),
+    review: document.getElementById("reviewView"),
+    reviewNav: document.getElementById("reviewNav"),
+    reviewSummary: document.getElementById("reviewSummary"),
+    reviewFilters: document.getElementById("reviewFilters"),
+    reviewList: document.getElementById("reviewList"),
     feed: document.getElementById("feed"),
     feedTitle: document.getElementById("feedTitle"),
     resultCount: document.getElementById("resultCount"),
@@ -178,6 +216,7 @@
     state.view = view;
     els.discover.hidden = view !== "discover";
     els.knowledge.hidden = view !== "knowledge";
+    els.review.hidden = view !== "review";
     document.querySelectorAll(".nav-btn[data-view]").forEach(btn => {
       btn.classList.toggle("is-active", btn.dataset.view === view);
     });
@@ -199,6 +238,19 @@
     if (hash === "#/knowledge") {
       closeDetail(false);
       showView("knowledge");
+      return;
+    }
+    if (hash === "#/review") {
+      closeDetail(false);
+      if (state.apiMode) {
+        showView("review");
+        loadReviewQueue().catch(error => {
+          setHTML(els.reviewList, `<div class="review-empty">复核队列加载失败：${esc(error.message)}</div>`);
+        });
+      } else {
+        history.replaceState(null, "", "#/discover");
+        showView("discover");
+      }
       return;
     }
     closeDetail(false);
@@ -674,6 +726,106 @@
     toast(state.apiMode ? "已发布" : "已发布（本地存储）");
   }
 
+  /* ---------- 复核工作台 ---------- */
+
+  async function loadReviewQueue() {
+    const response = await fetch(
+      `/api/review/queue?filter=${encodeURIComponent(state.reviewFilter)}`,
+      { cache: "no-store" }
+    );
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    renderReviewQueue(await response.json());
+  }
+
+  function reviewItemHTML(item) {
+    const flags = [];
+    if (item.flags.unverified) flags.push('<span class="flag flag-warn">许可证待核对</span>');
+    if (item.flags.legalReview) flags.push('<span class="flag flag-info">需法务复核</span>');
+    if (item.flags.denied) flags.push(`<span class="flag flag-muted">受限 ${item.deniedActions.length} 项</span>`);
+    const status = item.review.status || "pending";
+    flags.push(
+      `<span class="flag ${status === "reviewed" ? "flag-ok" : status === "rejected" ? "flag-warn" : "flag-muted"}">${esc(REVIEW_STATUS_LABEL[status] || status)}</span>`
+    );
+
+    const denied = item.deniedActions.map(entry => ACTION_LABEL[entry.action] || entry.action).join("、");
+    const review = item.legalReviewActions.map(action => ACTION_LABEL[action] || action).join("、");
+    const options = REVIEW_LICENSES.map(([code, label]) =>
+      `<option value="${esc(code)}"${code === item.license.code ? " selected" : ""}>${esc(label)}</option>`
+    ).join("");
+
+    return `
+      <article class="review-item" data-review-item="${esc(item.id)}">
+        <div class="review-head">
+          <h3 class="review-title">${esc(item.title.zh)}</h3>
+          <span class="review-meta">${esc(item.journal)} · ${esc(item.year)}</span>
+          <span class="review-meta">${esc(item.authors)}</span>
+        </div>
+        <div class="review-flags">
+          ${flags.join("")}
+          <span class="flag flag-muted">当前：${esc(item.license.label || item.license.code)}</span>
+        </div>
+        ${denied ? `<p class="review-reasons"><strong>受限能力：</strong>${esc(denied)}</p>` : ""}
+        ${review ? `<p class="review-reasons"><strong>需法务复核：</strong>${esc(review)}</p>` : ""}
+        ${item.review.note ? `<p class="review-reasons"><strong>复核备注：</strong>${esc(item.review.note)}</p>` : ""}
+        <div class="review-actions">
+          <select data-review-license aria-label="许可证">${options}</select>
+          <input data-review-note maxlength="200" placeholder="复核备注（可选）" aria-label="复核备注">
+          <button class="btn" data-review-action="update">更新许可证并复核</button>
+          <button class="btn btn-primary" data-review-action="approve">确认无误</button>
+        </div>
+      </article>`;
+  }
+
+  function renderReviewQueue(data) {
+    const summary = data.summary || {};
+    const stats = [
+      ["total", "全部", "", summary.total],
+      ["unverified", "待核对", "is-warn", summary.unverified],
+      ["legal_review", "需法务复核", "is-info", summary.legalReview],
+      ["denied", "有拒绝项", "", summary.denied],
+      ["reviewed", "已复核", "is-ok", summary.reviewed]
+    ];
+    setHTML(els.reviewSummary, stats.map(([, label, tone, value]) =>
+      `<div class="review-stat ${tone}"><strong>${esc(value == null ? "—" : value)}</strong><span>${esc(label)}</span></div>`
+    ).join(""));
+
+    const filters = [
+      ["all", "全部"], ["unverified", "待核对"], ["legal_review", "需法务复核"],
+      ["denied", "有拒绝项"], ["reviewed", "已复核"]
+    ];
+    setHTML(els.reviewFilters, filters.map(([value, label]) =>
+      `<button class="chip${value === state.reviewFilter ? " is-active" : ""}" data-review-filter="${esc(value)}" aria-pressed="${value === state.reviewFilter}">${esc(label)}</button>`
+    ).join(""));
+
+    if (!Array.isArray(data.items) || !data.items.length) {
+      setHTML(els.reviewList, `<div class="review-empty">当前筛选下没有需要复核的内容。</div>`);
+      return;
+    }
+    setHTML(els.reviewList, data.items.map(reviewItemHTML).join(""));
+  }
+
+  async function submitReview(id, action) {
+    const item = els.reviewList.querySelector(`[data-review-item="${CSS.escape(id)}"]`);
+    if (!item) return;
+    const licenseCode = item.querySelector("[data-review-license]").value;
+    const note = item.querySelector("[data-review-note]").value.trim();
+    const payload = action === "update"
+      ? { decision: "update_license", licenseCode, note }
+      : { decision: "approve", note };
+
+    const response = await fetch(`/api/review/${encodeURIComponent(id)}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error((error.error && error.error.message) || "复核保存失败");
+    }
+    toast(action === "update" ? `已更新许可证：${licenseCode}` : "已标记复核");
+    await loadReviewQueue();
+  }
+
   /* ---------- 事件 ---------- */
 
   function bindEvents() {
@@ -693,6 +845,13 @@
       state.topic = null;
       renderFilters();
       renderFeed();
+    });
+
+    els.reviewFilters.addEventListener("click", event => {
+      const btn = event.target.closest("[data-review-filter]");
+      if (!btn) return;
+      state.reviewFilter = btn.dataset.reviewFilter;
+      loadReviewQueue().catch(error => toast(error.message));
     });
 
     els.search.addEventListener("input", () => {
@@ -725,11 +884,27 @@
 
     document.querySelectorAll(".nav-btn[data-view]").forEach(btn => {
       btn.addEventListener("click", () => {
-        location.hash = btn.dataset.view === "knowledge" ? "#/knowledge" : "#/discover";
+        const routes = {
+          discover: "#/discover",
+          knowledge: "#/knowledge",
+          review: "#/review"
+        };
+        location.hash = routes[btn.dataset.view] || "#/discover";
       });
     });
 
     document.addEventListener("click", event => {
+      const reviewBtn = event.target.closest("[data-review-action]");
+      if (reviewBtn) {
+        event.preventDefault();
+        const item = reviewBtn.closest("[data-review-item]");
+        if (item) {
+          submitReview(item.dataset.reviewItem, reviewBtn.dataset.reviewAction)
+            .catch(error => toast(error.message));
+        }
+        return;
+      }
+
       const saveBtn = event.target.closest("[data-save]");
       if (saveBtn) {
         event.preventDefault();
@@ -818,6 +993,7 @@
         ? "数据来源：API + SQLite · 许可证能力由服务端下发"
         : "数据来源：本地静态示例 · 使用内置许可证提示";
     }
+    if (els.reviewNav) els.reviewNav.hidden = !state.apiMode;
 
     els.statPapers.textContent = String(papers.length);
     els.statConcepts.textContent = String(asArray(DATA.concepts).length);

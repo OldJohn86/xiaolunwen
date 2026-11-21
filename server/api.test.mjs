@@ -265,3 +265,69 @@ it("本地语料合并时跳过重复 id，并新增专题", () => {
     rmSync(dir, { recursive: true, force: true });
   }
 });
+
+it("复核工作台可更新许可证并立即重算能力", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "xlw-review-"));
+  const db = createDb(join(dir, "review.db"));
+  const started = await startServer(db, { port: 0, host: "127.0.0.1" });
+
+  try {
+    ingest(db, undefined, { now: "2026-11-21T00:00:00.000Z", localCorpus: null });
+
+    const queue = await (await fetch(started.url + "/api/review/queue")).json();
+    assert.ok(queue.summary.unverified > 0);
+    const kalman = queue.items.find(item => item.id === "kalman-1960");
+    assert.equal(kalman.flags.unverified, true);
+    assert.ok(kalman.deniedActions.length >= 1);
+
+    const updatedResponse = await fetch(started.url + "/api/review/kalman-1960", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        decision: "update_license",
+        licenseCode: "CC-BY-4.0",
+        note: "测试复核：确认开放许可"
+      })
+    });
+    assert.equal(updatedResponse.status, 200);
+    const updated = await updatedResponse.json();
+    assert.equal(updated.newLicense, "CC-BY-4.0");
+    assert.equal(updated.item.flags.unverified, false);
+    assert.equal(updated.item.review.status, "reviewed");
+    assert.equal(updated.item.deniedActions.length, 0);
+
+    const unverified = await (await fetch(started.url + "/api/review/queue?filter=unverified")).json();
+    assert.ok(!unverified.items.some(item => item.id === "kalman-1960"));
+
+    const detail = await (await fetch(started.url + "/api/papers/kalman-1960")).json();
+    assert.equal(detail.paper.license.allowed.translate_fulltext.allowed, true);
+
+    const approvedResponse = await fetch(started.url + "/api/review/einstein-1905", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ decision: "approve", note: "确认无误" })
+    });
+    assert.equal(approvedResponse.status, 200);
+    const approved = await approvedResponse.json();
+    assert.equal(approved.item.review.status, "reviewed");
+
+    const invalid = await fetch(started.url + "/api/review/kalman-1960", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ decision: "update_license", licenseCode: "NOT-A-LICENSE" })
+    });
+    assert.equal(invalid.status, 400);
+
+    const missing = await fetch(started.url + "/api/review/not-exist", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ decision: "approve" })
+    });
+    assert.equal(missing.status, 404);
+  } finally {
+    started.server.closeAllConnections();
+    await new Promise(resolve => started.server.close(resolve));
+    closeDb(db);
+    rmSync(dir, { recursive: true, force: true });
+  }
+});

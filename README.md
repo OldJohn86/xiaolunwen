@@ -115,7 +115,18 @@ curl http://127.0.0.1:8787/api/papers/einstein-1905
 curl "http://127.0.0.1:8787/api/license/CC-BY-NC-4.0?action=translate_fulltext"
 ```
 
-当前示例结果：18 篇论文、62 项许可证检查、16 项拒绝、4 项需法务复核。详见 [server/README.md](server/README.md)。
+当前示例结果：18 篇演示论文；合并本地 Top50 后共 59 篇、185 项许可证检查、56 项拒绝、4 项需法务复核。详见 [server/README.md](server/README.md)。
+
+### 复核工作台（M2 前置）
+
+API 模式下导航会出现「复核」入口，集中处理许可证待核对、需法务复核与被拒绝的能力：
+
+- 队列按状态筛选：全部 / 待核对 / 需法务复核 / 有拒绝项 / 已复核。
+- 可直接选择新许可证并保存，服务端会**立即重算** `license.allowed`，写入 `review_log` 与复核备注。
+- 也可仅标记“确认无误”，不改变许可证。
+- 当前为本地原型，复核接口没有鉴权，不能直接暴露到公网。
+
+![复核工作台](docs/assets/preview-review.jpg)
 
 ## 本地 PDF 导入
 

@@ -30,7 +30,10 @@ CREATE TABLE IF NOT EXISTS papers (
   demo_json TEXT,
   thinking_json TEXT,
   original_lang TEXT NOT NULL DEFAULT 'en',
-  ingested_at TEXT NOT NULL
+  ingested_at TEXT NOT NULL,
+  review_status TEXT NOT NULL DEFAULT 'pending',
+  review_note TEXT,
+  reviewed_at TEXT
 );
 
 CREATE TABLE IF NOT EXISTS concepts (
@@ -71,6 +74,16 @@ CREATE TABLE IF NOT EXISTS ingest_log (
   created_at TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS review_log (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  paper_id TEXT NOT NULL,
+  decision TEXT NOT NULL,
+  previous_license TEXT,
+  new_license TEXT,
+  note TEXT,
+  created_at TEXT NOT NULL
+);
+
 CREATE INDEX IF NOT EXISTS idx_papers_field ON papers(field);
 CREATE INDEX IF NOT EXISTS idx_papers_tag ON papers(tag);
 CREATE INDEX IF NOT EXISTS idx_comments_paper ON comments(paper_id);
@@ -82,12 +95,25 @@ function runSql(db, statement) {
   Reflect.apply(Reflect.get(db, "exec"), db, [statement]);
 }
 
+function ensureColumn(db, table, column, definition) {
+  const columns = db.prepare(`PRAGMA table_info(${table})`).all();
+  if (!columns.some(item => item.name === column)) {
+    runSql(db, `ALTER TABLE ${table} ADD COLUMN ${column} ${definition};`);
+  }
+}
+
 export function createDb(path = process.env.XLW_DB || DEFAULT_DB_PATH) {
   mkdirSync(dirname(path), { recursive: true });
   const db = new DatabaseSync(path);
   runSql(db, "PRAGMA journal_mode = WAL;");
   runSql(db, "PRAGMA foreign_keys = ON;");
   runSql(db, SCHEMA);
+
+  // 兼容已有数据库：补齐复核字段。
+  ensureColumn(db, "papers", "review_status", "TEXT NOT NULL DEFAULT 'pending'");
+  ensureColumn(db, "papers", "review_note", "TEXT");
+  ensureColumn(db, "papers", "reviewed_at", "TEXT");
+
   return db;
 }
 
@@ -104,7 +130,7 @@ export function transaction(db, fn) {
 }
 
 export function clearContent(db) {
-  runSql(db, "DELETE FROM comments; DELETE FROM ingest_log; DELETE FROM concepts; DELETE FROM topics; DELETE FROM papers;");
+  runSql(db, "DELETE FROM comments; DELETE FROM ingest_log; DELETE FROM review_log; DELETE FROM concepts; DELETE FROM topics; DELETE FROM papers;");
 }
 
 export function insertComment(db, paperId, author, body, options = {}) {
