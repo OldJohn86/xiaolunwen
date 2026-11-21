@@ -489,7 +489,7 @@
 
     const interpSection = p.interpretation
       ? `<section class="detail-section">
-          <h3>AI 结构化解读 <span class="ai-label">${sparkle()}AI 生成 · 已复核示意</span></h3>
+          <h3>AI 结构化解读 <span class="ai-label">${sparkle()}AI 辅助整理 · 待复核</span></h3>
           <div class="interp-list">
             ${p.interpretation.map(item => `
               <div class="interp-item">

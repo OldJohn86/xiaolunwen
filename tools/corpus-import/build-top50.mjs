@@ -181,7 +181,10 @@ for (const paper of papers) {
   const doi = normalizeDoi(paper.doi || paper.url);
   const existingId = existingByDoi.get(doi);
   const openAlex = openAlexMap.get((paper.openalex_id || "").split("/").pop());
-  const license = licenseFor(paper, openAlex);
+  const detail = details[String(paper.rank)] || {};
+  const license = detail.license
+    ? { deep: false, commercial: false, derivatives: false, ...detail.license }
+    : licenseFor(paper, openAlex);
   const venue = venueFor(paper, openAlex);
 
   let id = existingId;
@@ -198,8 +201,6 @@ for (const paper of papers) {
   paperIds.push(id);
 
   if (existingId) continue;
-
-  const detail = details[String(paper.rank)] || {};
 
   entries.push({
     id,
@@ -220,7 +221,7 @@ for (const paper of papers) {
     abstractZh: detail.abstractZh || `该论文是“${paper.topic || "人工智能"}”方向的代表性工作，主题为“${paper.zh_title || paper.title}”。完整中文摘要与论证拆解待许可证核对与编辑复核后开放。`,
     abstractEn: "",
     formula: detail.formula || "",
-    interpretation: null,
+    interpretation: detail.interpretation || null,
     demo: null,
     thinking: detail.thinking || [
       "这篇论文试图解决什么问题，为什么重要？",

@@ -28,6 +28,8 @@ node server/ingest.mjs
   - arXiv 预印本 → `ARXIV-NONEXCLUSIVE`（允许展示与评论，不允许翻译/改编/商业使用）；
   - 其余 → `UNVERIFIED`（仅元数据与平台摘要，不开放 AI 解读）。
 - `top50-details.json` 保存按排名整理的中文摘要与标志性公式，均为平台原创概述，不含原文摘录或逐句翻译。
+- 其中 6 篇（ResNet、Transformer、Adam、BERT、ViT、GPT-3）带结构化解读，界面标注“AI 辅助整理 · 待复核”。
+- ResNet 通过 `license` 覆盖使用 arXiv 预印本许可（CVPR 正式版仍为出版社版权）；这是人工判断，需后续复核。
 - 没有条目覆盖的论文会回退到“待整理”占位提示。
 
 ## 本地语料结构
