@@ -5,6 +5,16 @@
  * 3. license.deep 仅作为前端展示提示；真实准入由 tools/license-check 校验。
  * 4. 摘要为平台整理/改写，不是逐句翻译；全文翻译需按许可证另行取得授权。
  */
+// 本地导入但许可证尚未核对的文献：只展示元数据与平台摘要。
+const UNVERIFIED_LICENSE = {
+  spdx: "UNVERIFIED",
+  code: "待核对",
+  note: "本地导入，许可证未确认；仅展示元数据与平台摘要，不开放 AI 解读",
+  deep: false,
+  commercial: false,
+  derivatives: false
+};
+
 const DATA = {
   papers: [
     {
@@ -326,6 +336,222 @@ const DATA = {
         "理论预言如何被实验检验？"
       ],
       link: "https://doi.org/10.1103/PhysRevLett.13.508"
+    },
+    {
+      id: "kalman-1960",
+      titleZh: "线性滤波与预测问题的新方法",
+      titleEn: "A New Approach to Linear Filtering and Prediction Problems",
+      authors: "R. E. Kalman",
+      journal: "Journal of Basic Engineering",
+      year: 1960,
+      citations: 24434,
+      field: "数学",
+      nobel: null,
+      tag: "logic",
+      license: { ...UNVERIFIED_LICENSE },
+      abstractZh: "论文用状态空间模型描述动态系统，并推导出卡尔曼滤波：在噪声统计已知时，递推地给出系统状态的最优线性估计。方法同时适用于平稳与非平稳过程，并指出滤波问题与无噪声调节器问题之间存在对偶关系。",
+      abstractEn: "The paper formulates filtering and prediction with state-space models and derives the Kalman filter, a recursive optimal linear estimator for systems with known noise statistics. It covers stationary and nonstationary processes and shows the duality between filtering and the noise-free regulator problem.",
+      formula: "x̂ₖ = Ax̂ₖ₋₁ + K(zₖ − Hx̂ₖ₋₁)",
+      interpretation: null,
+      demo: null,
+      thinking: [
+        "状态空间模型相比频域方法有什么优势？",
+        "最优性依赖哪些噪声与模型假设？",
+        "如果噪声统计未知，方法需要怎样修改？"
+      ],
+      link: "https://doi.org/10.1115/1.3662552"
+    },
+    {
+      id: "nsga2-2002",
+      titleZh: "一种快速且精英保留的多目标遗传算法：NSGA-II",
+      titleEn: "A Fast and Elitist Multiobjective Genetic Algorithm: NSGA-II",
+      authors: "K. Deb, A. Pratap, S. Agarwal, T. Meyarivan",
+      journal: "IEEE Transactions on Evolutionary Computation",
+      year: 2002,
+      citations: 45513,
+      field: "计算机",
+      nobel: null,
+      tag: "logic",
+      license: { ...UNVERIFIED_LICENSE },
+      abstractZh: "针对多目标进化算法计算复杂度高、缺少精英保留、需要人为设定共享参数的问题，论文提出 NSGA-II：用快速非支配排序、拥挤距离与精英保留选择维持解的多样性。在多个困难测试问题上，它能在一次运行中得到分布较广的 Pareto 前沿。",
+      abstractEn: "The paper introduces NSGA-II, a nondominated sorting-based multiobjective evolutionary algorithm with a fast sorting procedure, a crowding-distance diversity mechanism, and elitist selection. Experiments on difficult test problems show improved convergence and spread of the Pareto front.",
+      formula: "fast non-dominated sort: O(MN²)",
+      interpretation: null,
+      demo: null,
+      thinking: [
+        "非支配排序如何把种群分层？",
+        "拥挤距离解决的是什么问题？",
+        "Pareto 前沿的多样性应该如何衡量？"
+      ],
+      link: "https://doi.org/10.1109/4235.996017"
+    },
+    {
+      id: "differential-evolution-1997",
+      titleZh: "差分进化：一种简单高效的连续空间全局优化启发式",
+      titleEn: "Differential Evolution – A Simple and Efficient Heuristic for Global Optimization over Continuous Spaces",
+      authors: "Rainer Storn, Kenneth Price",
+      journal: "Journal of Global Optimization",
+      year: 1997,
+      citations: 26023,
+      field: "数学",
+      nobel: null,
+      tag: "logic",
+      license: { ...UNVERIFIED_LICENSE },
+      abstractZh: "论文提出差分进化：用种群个体之间的差分向量扰动候选解，再通过交叉与选择迭代搜索全局最优。方法控制参数少、实现简单，适用于非线性、不可微的连续优化问题，并在测试集上与其他全局优化方法进行比较。",
+      abstractEn: "The paper presents differential evolution, a population-based heuristic that perturbs candidate solutions with difference vectors between individuals, followed by crossover and selection. It requires few control parameters and performs well on nonlinear, non-differentiable continuous optimization problems.",
+      formula: "v = x_r1 + F(x_r2 − x_r3)",
+      interpretation: null,
+      demo: null,
+      thinking: [
+        "差分向量为什么能提供有效的搜索方向？",
+        "缩放因子与交叉率如何影响探索和开发？",
+        "差分进化在什么情况下会过早收敛？"
+      ],
+      link: "https://doi.org/10.1023/A:1008202821328"
+    },
+    {
+      id: "backprop-1986",
+      titleZh: "通过反向传播误差学习表征",
+      titleEn: "Learning Representations by Back-Propagating Errors",
+      authors: "David E. Rumelhart, Geoffrey E. Hinton, Ronald J. Williams",
+      journal: "Nature",
+      year: 1986,
+      citations: 26501,
+      field: "计算机",
+      nobel: null,
+      tag: "logic",
+      license: { ...UNVERIFIED_LICENSE },
+      abstractZh: "论文展示如何用反向传播训练多层神经网络：把输出误差沿网络逐层回传，计算各层权重的梯度并更新。实验表明，隐藏层能够学习到有用的内部表征，使网络可以拟合非线性映射。",
+      abstractEn: "The paper shows how to train multilayer neural networks by back-propagating output errors through the network to compute weight gradients. Experiments indicate that hidden layers learn useful internal representations for nonlinear mappings.",
+      formula: "Δw = −η ∂E/∂w",
+      interpretation: null,
+      demo: null,
+      thinking: [
+        "反向传播与链式法则是什么关系？",
+        "隐藏层学到的表征为什么难以直接解释？",
+        "梯度消失问题在这套框架中如何出现？"
+      ],
+      link: "https://doi.org/10.1038/323533a0"
+    },
+    {
+      id: "em-1977",
+      titleZh: "通过 EM 算法从不完整数据中求最大似然估计",
+      titleEn: "Maximum Likelihood from Incomplete Data via the EM Algorithm",
+      authors: "A. P. Dempster, N. M. Laird, D. B. Rubin",
+      journal: "Journal of the Royal Statistical Society: Series B",
+      year: 1977,
+      citations: 34538,
+      field: "数学",
+      nobel: null,
+      tag: "logic",
+      license: { ...UNVERIFIED_LICENSE },
+      abstractZh: "论文提出 EM 算法：把观测数据视为不完整数据，通过期望步计算隐变量的条件期望，再通过最大化步更新参数。作者证明似然在迭代中单调不降，并给出缺失值、混合模型、删失数据等应用。",
+      abstractEn: "The paper introduces the EM algorithm, which treats observed data as incomplete, alternates between an expectation step over latent variables and a maximization step for parameters, and proves monotone likelihood improvement. Applications include missing data, mixture models, and censored data.",
+      formula: "Q(θ|θᵗ) = E[log p(X,Z|θ) | Y, θᵗ]",
+      interpretation: null,
+      demo: null,
+      thinking: [
+        "EM 为什么能保证似然单调上升？",
+        "E 步与 M 步各自解决了什么难题？",
+        "EM 收敛到的一定是全局最优吗？"
+      ],
+      link: "https://doi.org/10.1111/j.2517-6161.1977.tb01600.x"
+    },
+    {
+      id: "simulated-annealing-1983",
+      titleZh: "模拟退火优化",
+      titleEn: "Optimization by Simulated Annealing",
+      authors: "S. Kirkpatrick, C. D. Gelatt Jr., M. P. Vecchi",
+      journal: "Science",
+      year: 1983,
+      citations: 35453,
+      field: "数学",
+      nobel: null,
+      tag: "logic",
+      license: { ...UNVERIFIED_LICENSE },
+      abstractZh: "论文把统计力学中的退火过程与组合优化联系起来，提出模拟退火：以一定概率接受更差的解，从而跳出局部最优，并随温度下降逐步收敛。作者在旅行商、电路布局等问题上展示了方法的效果。",
+      abstractEn: "The paper connects statistical mechanics with combinatorial optimization and proposes simulated annealing: worse solutions are accepted with a temperature-dependent probability, allowing escape from local optima before cooling. Applications include the traveling salesman problem and circuit placement.",
+      formula: "P(accept) = exp(−ΔE/T)",
+      interpretation: null,
+      demo: null,
+      thinking: [
+        "为什么允许接受更差解有助于全局搜索？",
+        "降温策略如何影响结果质量与耗时？",
+        "模拟退火与贪心搜索的本质差异是什么？"
+      ],
+      link: "https://doi.org/10.1126/science.220.4598.671"
+    },
+    {
+      id: "pso-1995",
+      titleZh: "粒子群优化",
+      titleEn: "Particle Swarm Optimization",
+      authors: "James Kennedy, Russell Eberhart",
+      journal: "Proceedings of ICNN'95 - International Conference on Neural Networks",
+      year: 1995,
+      citations: 42798,
+      field: "计算机",
+      nobel: null,
+      tag: "logic",
+      license: { ...UNVERIFIED_LICENSE },
+      abstractZh: "论文提出粒子群优化：把候选解视为在搜索空间中运动的粒子，每个粒子根据自身历史最优位置与群体最优位置调整速度。方法源于对社会行为的模拟，控制参数少，可用于连续函数优化与神经网络训练。",
+      abstractEn: "The paper introduces particle swarm optimization, in which candidate solutions move through the search space and adjust their velocities based on personal best and global best positions. The method is inspired by social behavior and is applied to continuous optimization and neural network training.",
+      formula: "v ← v + c₁r₁(pbest − x) + c₂r₂(gbest − x)",
+      interpretation: null,
+      demo: null,
+      thinking: [
+        "个体最优与全局最优如何平衡探索和开发？",
+        "速度更新中的随机项起什么作用？",
+        "粒子群为什么可能过早收敛？"
+      ],
+      link: "https://doi.org/10.1109/ICNN.1995.488968"
+    },
+    {
+      id: "smote-2002",
+      titleZh: "SMOTE：合成少数类过采样技术",
+      titleEn: "SMOTE: Synthetic Minority Over-sampling Technique",
+      authors: "Nitesh V. Chawla, Kevin W. Bowyer, Lawrence O. Hall, W. Philip Kegelmeyer",
+      journal: "Journal of Artificial Intelligence Research",
+      year: 2002,
+      citations: 28850,
+      field: "计算机",
+      nobel: null,
+      tag: "logic",
+      license: { ...UNVERIFIED_LICENSE },
+      abstractZh: "论文针对类别不平衡问题提出 SMOTE：在少数类样本与其近邻之间插值生成合成样本，再进行过采样，并可与多数类欠采样结合。实验显示，该方法在 ROC 空间中的分类表现优于单纯欠采样与调整损失比例。",
+      abstractEn: "The paper addresses class imbalance with SMOTE, which creates synthetic minority examples by interpolating between minority samples and their nearest neighbors. Experiments show better ROC performance than undersampling alone or adjusting loss ratios.",
+      formula: "x_new = x + λ(x_nn − x)",
+      interpretation: null,
+      demo: null,
+      thinking: [
+        "合成样本与简单复制少数类有何区别？",
+        "过采样可能带来哪些风险？",
+        "类别不平衡时，为什么准确率不是好指标？"
+      ],
+      link: "https://doi.org/10.1613/jair.953"
+    },
+    {
+      id: "svm-1995",
+      titleZh: "支持向量网络",
+      titleEn: "Support-Vector Networks",
+      authors: "Corinna Cortes, Vladimir Vapnik",
+      journal: "Machine Learning",
+      year: 1995,
+      citations: 31531,
+      field: "计算机",
+      nobel: null,
+      tag: "logic",
+      license: { ...UNVERIFIED_LICENSE },
+      abstractZh: "论文提出支持向量网络：把输入向量非线性映射到高维特征空间，并在其中构造线性决策面。通过最大化间隔与核函数，方法在非线性可分数据上仍具有良好泛化能力，并在 OCR 基准上与传统学习算法比较。",
+      abstractEn: "The paper introduces support-vector networks, which map inputs nonlinearly into a high-dimensional feature space and construct a linear decision surface there. Margin maximization and kernel functions provide strong generalization, with comparisons on an OCR benchmark.",
+      formula: "max margin + kernel trick",
+      interpretation: null,
+      demo: null,
+      thinking: [
+        "为什么在高维空间里反而更容易线性分开？",
+        "支持向量在决策边界中起什么作用？",
+        "核函数的选择如何影响模型表现？"
+      ],
+      link: "https://doi.org/10.1007/BF00994018"
     }
   ],
 
@@ -339,7 +565,10 @@ const DATA = {
     { id: "uncertainty", name: "误差与置信", en: "Uncertainty", definition: "测量结果总伴随误差。报告结论时应给出不确定度或置信区间，而不是只给一个点值。", papers: ["ligo-2016", "penzias-wilson-1965"] },
     { id: "scope", name: "适用范围", en: "Scope", definition: "结论成立的条件边界：样本、环境、剂量、时间尺度。超出范围外推，是科普失真的常见来源。", papers: ["alphafold-2021", "einstein-1905"] },
     { id: "model-evidence", name: "模型与证据", en: "Model vs. Evidence", definition: "模型是对现实的简化。模型与数据一致，不等于模型唯一正确；需要独立证据交叉验证。", papers: ["higgs-1964", "ligo-2016"] },
-    { id: "consensus", name: "科学共识", en: "Scientific Consensus", definition: "在大量独立证据基础上形成的暂时性判断，会随新证据修正，而不是投票或权威裁定。", papers: ["lk99-2023", "doudna-2012"] }
+    { id: "consensus", name: "科学共识", en: "Scientific Consensus", definition: "在大量独立证据基础上形成的暂时性判断，会随新证据修正，而不是投票或权威裁定。", papers: ["lk99-2023", "doudna-2012"] },
+    { id: "convergence", name: "收敛性", en: "Convergence", definition: "迭代算法是否、以及以多快速度逼近稳定解。收敛性证明通常依赖对目标函数、步长与噪声的假设。", papers: ["em-1977", "simulated-annealing-1983", "differential-evolution-1997", "pso-1995"] },
+    { id: "generalization", name: "泛化", en: "Generalization", definition: "模型在未见数据上的表现。训练误差低不等于泛化好，容量、正则化与数据分布都会影响泛化。", papers: ["svm-1995", "backprop-1986", "smote-2002"] },
+    { id: "multi-objective", name: "多目标优化", en: "Multi-objective Optimization", definition: "同时优化多个可能冲突的目标时，通常不存在单一最优解，而是一组互不支配的 Pareto 解。", papers: ["nsga2-2002"] }
   ],
 
   topics: [
@@ -347,7 +576,8 @@ const DATA = {
     { id: "quantum", name: "量子革命", desc: "光量子、对称性破缺与标准模型的建立。", papers: ["einstein-1905", "higgs-1964", "lk99-2023"], tone: "ink" },
     { id: "life", name: "生命密码", desc: "从双螺旋到可编程基因编辑。", papers: ["watson-crick-1953", "doudna-2012", "alphafold-2021"], tone: "green" },
     { id: "cosmos", name: "宇宙的回声", desc: "从微波背景到引力波，人类如何听见宇宙。", papers: ["penzias-wilson-1965", "ligo-2016"], tone: "blue" },
-    { id: "repro", name: "可重复性危机", desc: "当实验结果无法复现，我们该相信什么？", papers: ["lk99-2023"], tone: "red" }
+    { id: "repro", name: "可重复性危机", desc: "当实验结果无法复现，我们该相信什么？", papers: ["lk99-2023"], tone: "red" },
+    { id: "classic-ml", name: "经典算法论文", desc: "从卡尔曼滤波到支持向量机：机器学习与优化领域的里程碑。", papers: ["kalman-1960", "nsga2-2002", "differential-evolution-1997", "backprop-1986", "em-1977", "simulated-annealing-1983", "pso-1995", "smote-2002", "svm-1995"], tone: "ink" }
   ],
 
   seedComments: {

@@ -47,9 +47,12 @@
 │   ├── 04-license-policy.md     # 许可证策略、操作模型与决策矩阵
 │   └── assets/                  # README 预览图
 ├── content/
-│   └── license-manifest.json    # 示例文献的许可证清单
+│   ├── license-manifest.json    # 示例文献的许可证清单
+│   └── local/                   # 本地 PDF 导入候选（gitignore，不入库）
 ├── tools/
-│   └── license-check/           # 可执行的许可证校验器 + 测试
+│   ├── license-check/           # 可执行的许可证校验器 + 测试
+│   ├── pdf-import/              # 本地 PDF 元数据/摘要提取工具
+│   └── corpus-import/           # 本地 AI Top50 语料构建工具
 ├── server/                      # M1 后端：SQLite 入库 + JSON API + 测试
 │   ├── README.md
 │   ├── db.mjs
@@ -87,6 +90,7 @@ M1 后端同为零依赖（Node 22+ 内置 SQLite）：
 ```bash
 node server/ingest.mjs      # 按许可证裁剪字段后写入 SQLite
 node server/server.mjs      # API + 原型，http://127.0.0.1:8787
+PORT=8123 node server/server.mjs   # 也可指定端口
 node --test server/api.test.mjs
 ```
 
@@ -111,7 +115,38 @@ curl http://127.0.0.1:8787/api/papers/einstein-1905
 curl "http://127.0.0.1:8787/api/license/CC-BY-NC-4.0?action=translate_fulltext"
 ```
 
-当前示例结果：9 篇论文、35 项许可证检查、7 项拒绝、4 项需法务复核。详见 [server/README.md](server/README.md)。
+当前示例结果：18 篇论文、62 项许可证检查、16 项拒绝、4 项需法务复核。详见 [server/README.md](server/README.md)。
+
+## 本地 PDF 导入
+
+`tools/pdf-import/` 可以把本地下载的 PDF 转成候选元数据清单，再人工核对 DOI 与许可证后入库：
+
+```bash
+python3 tools/pdf-import/extract.py ~/Downloads/Papers \
+  --out content/local/import-candidates.json
+```
+
+本次已将 `~/Downloads/Papers` 中的 9 篇经典论文接入「经典算法论文」专题（Kalman、NSGA-II、差分进化、反向传播、EM、模拟退火、PSO、SMOTE、SVM）。这些文献的许可证均未确认，因此统一标记为 `UNVERIFIED`：只展示元数据、平台自写摘要与思辨问题，不开放 AI 解读、翻译或商业使用。548 页的《Reinforcement Learning: An Introduction》作为教材未按论文入库。
+
+![许可证待核对文献的详情页](docs/assets/preview-unverified.jpg)
+
+> PDF 原文、全文翻译与候选摘要片段都不进入仓库；`content/local/` 已被 `.gitignore` 忽略。
+
+### 本地 AI Top50 语料
+
+`tools/corpus-import/` 可以把 AI Top50 结构化清单转成同样的本地语料：
+
+```bash
+node tools/corpus-import/build-top50.mjs \
+  --dataset ~/goldstock-releases/ai-papers-top50-2026-11-16/ai-papers-top50-2026-11-16.json
+
+node server/ingest.mjs
+PORT=8123 node server/server.mjs
+```
+
+生成 `content/local/top50.json` 后，入库会自动合并：**演示语料 18 篇 + 本地新增 41 篇 = 59 篇**，并新增「AI 必读 Top50」专题。9 篇重叠论文复用已有条目，不重复导入。期刊名与开放许可优先采用 OpenAlex；arXiv 论文标记 `ARXIV-NONEXCLUSIVE`，其余未确认许可的统一标记 `UNVERIFIED`。
+
+> 本地语料不会提交；缺少 `content/local/top50.json` 时，入库仍只包含演示语料 18 篇。
 
 ## 路线图
 

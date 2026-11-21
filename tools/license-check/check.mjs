@@ -102,6 +102,11 @@ export const LICENSES = {
     label: "出版社版权（仅摘要）",
     commercial: false, derivatives: false, redistribution: false,
     attribution: true, shareAlike: false
+  },
+  "UNVERIFIED": {
+    label: "许可证待核对",
+    commercial: false, derivatives: false, redistribution: false,
+    attribution: true, shareAlike: false, unverified: true
   }
 };
 
@@ -151,6 +156,14 @@ export function evaluateLicense(code, action, options = {}) {
   }
 
   if (action === "quote_commentary") {
+    if (license.unverified) {
+      return {
+        ...base,
+        allowed: false,
+        code: "license_unverified",
+        reason: "许可证待核对：仅展示元数据与平台摘要，暂不开放 AI 解读与原文引用"
+      };
+    }
     return {
       ...base,
       allowed: true,

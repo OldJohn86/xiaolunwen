@@ -65,6 +65,18 @@ test("出版社版权文献只能展示元数据与摘要", () => {
   assert.equal(evaluateLicense("PROPRIETARY-ABSTRACT-ONLY", "redistribute_fulltext").allowed, false);
 });
 
+test("许可证待核对时只展示元数据与摘要，不开放 AI 解读", () => {
+  assert.equal(evaluateLicense("UNVERIFIED", "display_metadata").allowed, true);
+  assert.equal(evaluateLicense("UNVERIFIED", "display_abstract").allowed, true);
+
+  const commentary = evaluateLicense("UNVERIFIED", "quote_commentary");
+  assert.equal(commentary.allowed, false);
+  assert.equal(commentary.code, "license_unverified");
+
+  assert.equal(evaluateLicense("UNVERIFIED", "translate_fulltext").allowed, false);
+  assert.equal(evaluateLicense("UNVERIFIED", "commercial_use").allowed, false);
+});
+
 test("arXiv 非独占许可允许展示与评论，不允许全文翻译与商业使用", () => {
   assert.equal(evaluateLicense("ARXIV-NONEXCLUSIVE", "quote_commentary").allowed, true);
   assert.equal(evaluateLicense("ARXIV-NONEXCLUSIVE", "translate_fulltext").allowed, false);
@@ -94,7 +106,7 @@ test("样例清单全部通过，且包含需复核项", () => {
   const manifest = JSON.parse(readFileSync(path, "utf8"));
   const result = checkManifest(manifest);
 
-  assert.equal(result.papers, 9);
+  assert.equal(result.papers, 18);
   assert.equal(result.denied, 0);
   assert.ok(result.checks > 0);
   assert.ok(result.warnings > 0);

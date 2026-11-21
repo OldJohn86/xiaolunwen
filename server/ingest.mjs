@@ -7,8 +7,9 @@
  * 同时记录到 ingest_log，便于后续审计与复核。
  */
 
+import { existsSync, readFileSync } from "node:fs";
 import { createRequire } from "node:module";
-import { resolve } from "node:path";
+import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import process from "node:process";
 import { ACTIONS, evaluateLicense } from "../tools/license-check/check.mjs";
@@ -16,6 +17,24 @@ import { createDb, clearContent, insertComment, transaction, DEFAULT_DB_PATH } f
 
 const require = createRequire(import.meta.url);
 const DATA = require("../prototype/js/data.js");
+
+const here = dirname(fileURLToPath(import.meta.url));
+export const DEFAULT_LOCAL_CORPUS = resolve(here, "../content/local/top50.json");
+
+export function loadLocalCorpus(options = {}) {
+  if (options.localCorpus === null) return null;
+  if (options.localCorpus && typeof options.localCorpus === "object") return options.localCorpus;
+
+  const path = typeof options.localCorpus === "string" ? options.localCorpus : DEFAULT_LOCAL_CORPUS;
+  if (!existsSync(path)) return null;
+
+  try {
+    return JSON.parse(readFileSync(path, "utf8"));
+  } catch (error) {
+    console.warn(`本地语料读取失败（${path}）：${error.message}`);
+    return null;
+  }
+}
 
 export function allowedActionMap(licenseCode, options = {}) {
   const commercial = options.commercial !== false;
@@ -47,6 +66,7 @@ export function ingest(db, data = DATA, options = {}) {
 
   const summary = {
     papers: 0,
+    localPapers: 0,
     comments: 0,
     checks: 0,
     denied: 0,
@@ -74,10 +94,7 @@ export function ingest(db, data = DATA, options = {}) {
     VALUES (?, ?, ?, ?, ?, ?, ?)
   `);
 
-  transaction(db, () => {
-    clearContent(db);
-
-    for (const paper of data.papers) {
+  function insertPaperRecord(paper) {
       const licenseCode = paper.license.spdx || paper.license.code;
       const allowed = allowedActionMap(licenseCode, { commercial });
       const requested = requestedActions(paper);
@@ -144,6 +161,23 @@ export function ingest(db, data = DATA, options = {}) {
       if (deniedHere.length) {
         summary.papersWithRestrictions = (summary.papersWithRestrictions || 0) + 1;
       }
+  }
+
+  const local = loadLocalCorpus(options);
+
+  transaction(db, () => {
+    clearContent(db);
+
+    for (const paper of data.papers) insertPaperRecord(paper);
+
+    const insertedIds = new Set(data.papers.map(paper => paper.id));
+    if (local && Array.isArray(local.papers)) {
+      for (const paper of local.papers) {
+        if (!paper || !paper.id || insertedIds.has(paper.id)) continue;
+        insertPaperRecord(paper);
+        insertedIds.add(paper.id);
+        summary.localPapers += 1;
+      }
     }
 
     for (const concept of data.concepts) {
@@ -164,6 +198,21 @@ export function ingest(db, data = DATA, options = {}) {
         topic.tone || null,
         JSON.stringify(topic.papers)
       );
+    }
+
+    const topicIds = new Set(data.topics.map(topic => topic.id));
+    if (local && Array.isArray(local.topics)) {
+      for (const topic of local.topics) {
+        if (!topic || !topic.id || topicIds.has(topic.id)) continue;
+        insertTopic.run(
+          topic.id,
+          topic.name,
+          topic.desc || null,
+          topic.tone || null,
+          JSON.stringify(topic.papers)
+        );
+        topicIds.add(topic.id);
+      }
     }
 
     const allSeeds = [];
@@ -195,7 +244,7 @@ if (isMain) {
   console.log("");
   console.log("内容入库完成");
   console.log("─".repeat(64));
-  console.log(`论文        ${summary.papers} 篇`);
+  console.log(`论文        ${summary.papers} 篇（其中本地语料 ${summary.localPapers} 篇）`);
   console.log(`种子讨论    ${summary.comments} 条`);
   console.log(`许可证检查  ${summary.checks} 项`);
   console.log(`拒绝操作    ${summary.denied} 项（不会进入对应功能）`);

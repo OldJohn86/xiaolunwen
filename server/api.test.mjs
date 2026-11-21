@@ -17,7 +17,7 @@ describe("M1 API 与入库流水线", () => {
   before(async () => {
     dir = mkdtempSync(join(tmpdir(), "xlw-test-"));
     db = createDb(join(dir, "content.db"));
-    summary = ingest(db, undefined, { now: "2026-11-20T00:00:00.000Z" });
+    summary = ingest(db, undefined, { now: "2026-11-20T00:00:00.000Z", localCorpus: null });
     started = await startServer(db, { port: 0, host: "127.0.0.1" });
     base = started.url;
   });
@@ -41,13 +41,14 @@ describe("M1 API 与入库流水线", () => {
   }
 
   it("入库时按许可证拒绝商业使用与受限演绎", () => {
-    assert.equal(summary.papers, 9);
+    assert.equal(summary.papers, 18);
     assert.equal(summary.comments, 6);
-    assert.equal(summary.checks, 35);
-    assert.equal(summary.denied, 7);
+    assert.equal(summary.checks, 62);
+    assert.equal(summary.denied, 16);
     assert.equal(summary.legalReview, 4);
 
     const denied = summary.deniedDetails.map(item => `${item.paper}:${item.action}`);
+    assert.ok(denied.includes("kalman-1960:commercial_use"));
     assert.ok(denied.includes("lk99-2023:commercial_use"));
     assert.ok(denied.includes("lk99-2023:adapt_fulltext"));
     assert.ok(denied.includes("watson-crick-1953:commercial_use"));
@@ -70,12 +71,12 @@ describe("M1 API 与入库流水线", () => {
     const health = await api("/api/health");
     assert.equal(health.status, 200);
     assert.equal(health.payload.ok, true);
-    assert.equal(health.payload.papers, 9);
+    assert.equal(health.payload.papers, 18);
 
     const list = await api("/api/papers");
     assert.equal(list.status, 200);
-    assert.equal(list.payload.total, 9);
-    assert.equal(list.payload.papers.length, 9);
+    assert.equal(list.payload.total, 18);
+    assert.equal(list.payload.papers.length, 18);
     assert.ok(list.payload.papers.every(paper => paper.license && paper.license.allowed));
     assert.ok(!("interpretation" in list.payload.papers[0]));
   });
@@ -150,9 +151,9 @@ describe("M1 API 与入库流水线", () => {
   it("bootstrap 聚合接口返回前端所需结构与许可证能力", async () => {
     const result = await api("/api/bootstrap");
     assert.equal(result.status, 200);
-    assert.equal(result.payload.papers.length, 9);
-    assert.equal(result.payload.concepts.length, 10);
-    assert.equal(result.payload.topics.length, 5);
+    assert.equal(result.payload.papers.length, 18);
+    assert.equal(result.payload.concepts.length, 13);
+    assert.equal(result.payload.topics.length, 6);
     assert.deepEqual(Object.keys(result.payload.comments).sort(), [
       "einstein-1905",
       "ligo-2016",
@@ -172,11 +173,11 @@ describe("M1 API 与入库流水线", () => {
 
   it("概念、专题与许可证查询接口", async () => {
     const concepts = await api("/api/concepts");
-    assert.equal(concepts.payload.concepts.length, 10);
+    assert.equal(concepts.payload.concepts.length, 13);
     assert.ok(concepts.payload.concepts[0].papers.length >= 1);
 
     const topics = await api("/api/topics");
-    assert.equal(topics.payload.topics.length, 5);
+    assert.equal(topics.payload.topics.length, 6);
     assert.ok(topics.payload.topics.some(topic => topic.id === "nobel"));
 
     const ncCommercial = await api("/api/license/CC-BY-NC-4.0?action=translate_fulltext&commercial=true");
@@ -202,4 +203,65 @@ describe("M1 API 与入库流水线", () => {
     const missing = await api("/nope.html");
     assert.equal(missing.status, 404);
   });
+});
+
+it("本地语料合并时跳过重复 id，并新增专题", () => {
+  const dir = mkdtempSync(join(tmpdir(), "xlw-local-"));
+  const db = createDb(join(dir, "local.db"));
+  const testPaper = {
+    id: "t50-test",
+    titleZh: "本地语料测试",
+    titleEn: "Local Corpus Test",
+    authors: "Test Author",
+    journal: "arXiv",
+    year: 2026,
+    citations: 0,
+    field: "计算机",
+    nobel: null,
+    tag: "logic",
+    license: {
+      spdx: "UNVERIFIED",
+      code: "待核对",
+      note: "测试",
+      deep: false,
+      commercial: false,
+      derivatives: false
+    },
+    abstractZh: "测试摘要",
+    abstractEn: "",
+    formula: "",
+    interpretation: null,
+    demo: null,
+    thinking: [],
+    link: "https://example.com/t50-test",
+    originalLang: "en"
+  };
+
+  try {
+    const summary = ingest(db, undefined, {
+      localCorpus: {
+        papers: [testPaper, { ...testPaper, id: "einstein-1905" }],
+        topics: [
+          {
+            id: "ai-top50",
+            name: "AI 必读 Top50",
+            desc: "测试专题",
+            tone: "blue",
+            papers: ["einstein-1905", "t50-test"]
+          }
+        ]
+      },
+      now: "2026-11-21T00:00:00.000Z"
+    });
+
+    assert.equal(summary.papers, 19);
+    assert.equal(summary.localPapers, 1);
+    assert.equal(db.prepare("SELECT COUNT(*) AS n FROM papers").get().n, 19);
+    assert.equal(db.prepare("SELECT COUNT(*) AS n FROM topics").get().n, 7);
+    assert.equal(db.prepare("SELECT name FROM topics WHERE id = 'ai-top50'").get().name, "AI 必读 Top50");
+    assert.equal(db.prepare("SELECT title_zh FROM papers WHERE id = 't50-test'").get().title_zh, "本地语料测试");
+  } finally {
+    closeDb(db);
+    rmSync(dir, { recursive: true, force: true });
+  }
 });

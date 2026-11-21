@@ -1,6 +1,6 @@
 {
   "commercial": true,
-  "note": "本清单对应原型中的 9 篇示例文献。许可证状态需在正式入库前逐篇复核，尤其是预印本与出版社版权文献。",
+  "note": "本清单对应原型中的 18 篇示例文献。许可证状态需在正式入库前逐篇复核，尤其是预印本、本地导入文献与出版社版权文献。",
   "papers": [
     {
       "id": "einstein-1905",
@@ -111,6 +111,78 @@
         "display_metadata",
         "display_abstract"
       ]
+    },
+    {
+      "id": "kalman-1960",
+      "title": "线性滤波与预测问题的新方法",
+      "license": "UNVERIFIED",
+      "source": "https://doi.org/10.1115/1.3662552",
+      "note": "本地 PDF 导入；Crossref 未提供开放许可，待核对。",
+      "uses": ["display_metadata", "display_abstract"]
+    },
+    {
+      "id": "nsga2-2002",
+      "title": "一种快速且精英保留的多目标遗传算法：NSGA-II",
+      "license": "UNVERIFIED",
+      "source": "https://doi.org/10.1109/4235.996017",
+      "note": "本地 PDF 导入；IEEE 版权，待核对。",
+      "uses": ["display_metadata", "display_abstract"]
+    },
+    {
+      "id": "differential-evolution-1997",
+      "title": "差分进化：一种简单高效的连续空间全局优化启发式",
+      "license": "UNVERIFIED",
+      "source": "https://doi.org/10.1023/A:1008202821328",
+      "note": "本地 PDF 导入；Springer 版权，待核对。",
+      "uses": ["display_metadata", "display_abstract"]
+    },
+    {
+      "id": "backprop-1986",
+      "title": "通过反向传播误差学习表征",
+      "license": "UNVERIFIED",
+      "source": "https://doi.org/10.1038/323533a0",
+      "note": "本地 PDF 导入；Nature 版权，扫描件，待核对。",
+      "uses": ["display_metadata", "display_abstract"]
+    },
+    {
+      "id": "em-1977",
+      "title": "通过 EM 算法从不完整数据中求最大似然估计",
+      "license": "UNVERIFIED",
+      "source": "https://doi.org/10.1111/j.2517-6161.1977.tb01600.x",
+      "note": "本地 PDF 导入；Wiley/JSTOR 版权，待核对。",
+      "uses": ["display_metadata", "display_abstract"]
+    },
+    {
+      "id": "simulated-annealing-1983",
+      "title": "模拟退火优化",
+      "license": "UNVERIFIED",
+      "source": "https://doi.org/10.1126/science.220.4598.671",
+      "note": "本地 PDF 导入；Science/AAAS 版权，待核对。",
+      "uses": ["display_metadata", "display_abstract"]
+    },
+    {
+      "id": "pso-1995",
+      "title": "粒子群优化",
+      "license": "UNVERIFIED",
+      "source": "https://doi.org/10.1109/ICNN.1995.488968",
+      "note": "本地 PDF 导入；IEEE 会议论文，待核对。",
+      "uses": ["display_metadata", "display_abstract"]
+    },
+    {
+      "id": "smote-2002",
+      "title": "SMOTE：合成少数类过采样技术",
+      "license": "UNVERIFIED",
+      "source": "https://doi.org/10.1613/jair.953",
+      "note": "本地 PDF 导入；JAIR 可公开阅读，但未在 Crossref 标注开放许可，待核对。",
+      "uses": ["display_metadata", "display_abstract"]
+    },
+    {
+      "id": "svm-1995",
+      "title": "支持向量网络",
+      "license": "UNVERIFIED",
+      "source": "https://doi.org/10.1007/BF00994018",
+      "note": "本地 PDF 导入；Springer 版权，待核对。",
+      "uses": ["display_metadata", "display_abstract"]
     }
   ]
 }
