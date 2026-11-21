@@ -78,10 +78,10 @@ export function ingest(db, data = DATA, options = {}) {
   const insertPaper = db.prepare(`
     INSERT INTO papers (
       id, title_zh, title_en, authors, journal, year, citations, field, nobel, tag,
-      license_code, license_label, license_note, license_allowed_json, abstract_zh, abstract_en,
+      license_code, license_label, license_note, license_source, license_allowed_json, abstract_zh, abstract_en,
       formula, link, interpretation_json, demo_json, thinking_json,
       original_lang, ingested_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
   const insertConcept = db.prepare(
     "INSERT INTO concepts (id, name, name_en, definition, papers_json) VALUES (?, ?, ?, ?, ?)"
@@ -145,6 +145,7 @@ export function ingest(db, data = DATA, options = {}) {
         licenseCode,
         paper.license.code,
         paper.license.note || null,
+        paper.license.source || null,
         JSON.stringify(allowed),
         paper.abstractZh || null,
         paper.abstractEn || null,

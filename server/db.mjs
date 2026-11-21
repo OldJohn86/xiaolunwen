@@ -33,7 +33,8 @@ CREATE TABLE IF NOT EXISTS papers (
   ingested_at TEXT NOT NULL,
   review_status TEXT NOT NULL DEFAULT 'pending',
   review_note TEXT,
-  reviewed_at TEXT
+  reviewed_at TEXT,
+  license_source TEXT
 );
 
 CREATE TABLE IF NOT EXISTS concepts (
@@ -113,6 +114,7 @@ export function createDb(path = process.env.XLW_DB || DEFAULT_DB_PATH) {
   ensureColumn(db, "papers", "review_status", "TEXT NOT NULL DEFAULT 'pending'");
   ensureColumn(db, "papers", "review_note", "TEXT");
   ensureColumn(db, "papers", "reviewed_at", "TEXT");
+  ensureColumn(db, "papers", "license_source", "TEXT");
 
   return db;
 }

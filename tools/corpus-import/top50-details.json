@@ -5,7 +5,8 @@
     "license": {
       "spdx": "ARXIV-NONEXCLUSIVE",
       "code": "arXiv 许可",
-      "note": "CVPR 正式版为出版社版权；arXiv 预印本公开可访问，仅做元数据与评论"
+      "note": "CVPR 正式版为出版社版权；arXiv 预印本公开可访问，仅做元数据与评论",
+      "source": "https://arxiv.org/abs/1512.03385"
     },
     "interpretation": [
       { "key": "hypothesis", "label": "研究假设", "text": "更深的网络难以训练，部分原因在优化：让层学习相对输入的残差映射，比直接学习完整映射更容易优化。", "ref": "摘要 / §1 引言" },

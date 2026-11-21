@@ -96,6 +96,7 @@ function licenseFor(paper, openAlex) {
     return {
       ...LICENSE_MAP[license],
       note: "OpenAlex 标注的开放许可，仍需核对具体版本与附加条款",
+      source: "OpenAlex primary_location.license",
       deep: false,
       commercial: true,
       derivatives: true
@@ -106,6 +107,7 @@ function licenseFor(paper, openAlex) {
       spdx: "ARXIV-NONEXCLUSIVE",
       code: "arXiv 许可",
       note: "arXiv 预印本，作者保留翻译与改编权；需逐篇核对版本许可",
+      source: paper.arxiv_id ? `https://arxiv.org/abs/${paper.arxiv_id}` : "arXiv",
       deep: false,
       commercial: false,
       derivatives: false
@@ -115,6 +117,7 @@ function licenseFor(paper, openAlex) {
     spdx: "UNVERIFIED",
     code: "待核对",
     note: "本地导入，未获取到开放许可；仅展示元数据与平台摘要",
+    source: "本地导入，未获取开放许可",
     deep: false,
     commercial: false,
     derivatives: false

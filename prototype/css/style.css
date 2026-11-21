@@ -346,6 +346,8 @@ main { max-width: 1240px; margin: 0 auto; padding: 28px clamp(16px, 4vw, 48px) 7
 .review-stat.is-warn strong { color: var(--red); }
 .review-stat.is-info strong { color: var(--blue); }
 .review-stat.is-ok strong { color: var(--green); }
+.review-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.review-toolbar .btn { margin-left: auto; }
 .review-list { display: grid; gap: 12px; margin-top: 16px; }
 .review-item {
   padding: 16px 18px; background: var(--surface); border: 1px solid var(--line);
@@ -361,6 +363,9 @@ main { max-width: 1240px; margin: 0 auto; padding: 28px clamp(16px, 4vw, 48px) 7
 .flag-ok { background: var(--green-soft); color: var(--green); }
 .flag-muted { background: var(--surface-2); color: var(--muted); border: 1px solid var(--line); }
 .review-reasons { margin: 8px 0 0; font-size: 11.5px; color: var(--muted); line-height: 1.7; }
+.review-history { margin-top: 10px; font-size: 11.5px; color: var(--muted); }
+.review-history summary { cursor: pointer; color: var(--accent); }
+.review-history ul { margin: 8px 0 0; padding-left: 18px; line-height: 1.7; }
 .review-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 12px; }
 .review-actions select, .review-actions input {
   padding: 7px 10px; border: 1px solid var(--line); border-radius: 9px;

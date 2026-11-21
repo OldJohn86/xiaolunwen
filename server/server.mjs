@@ -15,7 +15,7 @@ import { createReadStream, statSync } from "node:fs";
 import { extname, resolve, sep, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import process from "node:process";
-import { ACTIONS, LICENSES, evaluateLicense, normalizeLicense } from "../tools/license-check/check.mjs";
+import { ACTIONS, ACTION_LABEL, LICENSES, evaluateLicense, normalizeLicense } from "../tools/license-check/check.mjs";
 import { createDb, insertComment, listComments } from "./db.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -77,6 +77,7 @@ function paperRowToListItem(row) {
       code: row.license_code,
       label: row.license_label,
       note: row.license_note,
+      source: row.license_source || null,
       allowed: safeParse(row.license_allowed_json, {})
     }
   };
@@ -120,6 +121,7 @@ function paperToCoreJson(paper) {
       code: paper.license_code,
       label: paper.license_label,
       note: paper.license_note,
+      source: paper.license_source || null,
       allowed: safeParse(paper.license_allowed_json, {})
     },
     interpretation,
@@ -196,6 +198,16 @@ function reviewItemForRow(db, row) {
   const deniedActions = Object.entries(allowed)
     .filter(([, value]) => !value.allowed)
     .map(([action, value]) => ({ action, reason: value.reason, code: value.code }));
+  const history = db.prepare(`
+    SELECT decision, previous_license, new_license, note, created_at
+    FROM review_log WHERE paper_id = ? ORDER BY id DESC LIMIT 10
+  `).all(row.id).map(item => ({
+    decision: item.decision,
+    previousLicense: item.previous_license,
+    newLicense: item.new_license,
+    note: item.note,
+    createdAt: item.created_at
+  }));
 
   return {
     id: row.id,
@@ -208,7 +220,8 @@ function reviewItemForRow(db, row) {
     license: {
       code: row.license_code,
       label: row.license_label,
-      note: row.license_note
+      note: row.license_note,
+      source: row.license_source || null
     },
     review: {
       status: row.review_status || "pending",
@@ -222,9 +235,55 @@ function reviewItemForRow(db, row) {
     },
     legalReviewActions,
     deniedActions,
+    history,
     allowedCount: Object.values(allowed).filter(item => item.allowed).length,
     totalActions: ACTIONS.length
   };
+}
+
+const REVIEW_STATUS_LABEL_SERVER = {
+  pending: "待复核",
+  reviewed: "已复核",
+  rejected: "已驳回"
+};
+
+function getReviewQueue(db, filter = "all") {
+  const rows = db.prepare("SELECT * FROM papers ORDER BY rowid").all();
+  let items = rows.map(row => reviewItemForRow(db, row));
+
+  const summary = {
+    total: items.length,
+    unverified: items.filter(item => item.flags.unverified).length,
+    legalReview: items.filter(item => item.flags.legalReview).length,
+    denied: items.filter(item => item.flags.denied).length,
+    reviewed: items.filter(item => item.review.status !== "pending").length
+  };
+
+  if (filter === "unverified") items = items.filter(item => item.flags.unverified);
+  else if (filter === "legal_review") items = items.filter(item => item.flags.legalReview);
+  else if (filter === "denied") items = items.filter(item => item.flags.denied);
+  else if (filter === "reviewed") items = items.filter(item => item.review.status !== "pending");
+
+  const score = item => item.flags.unverified ? 0 : item.flags.legalReview ? 1 : item.flags.denied ? 2 : 3;
+  items.sort((a, b) => score(a) - score(b) || a.id.localeCompare(b.id));
+
+  return { filter, summary, items };
+}
+
+function csvCell(value) {
+  const text = value == null ? "" : String(value);
+  return /[",\r\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+}
+
+function sendCsv(res, filename, rows) {
+  const body = rows.map(row => row.map(csvCell).join(",")).join("\r\n");
+  res.writeHead(200, {
+    "Content-Type": "text/csv; charset=utf-8",
+    "Content-Disposition": `attachment; filename="${filename}"`,
+    "Cache-Control": "no-store",
+    "X-Content-Type-Options": "nosniff"
+  });
+  res.end("﻿" + body);
 }
 
 async function handleApi(db, req, res, url) {
@@ -257,27 +316,34 @@ async function handleApi(db, req, res, url) {
   }
 
   if (req.method === "GET" && url.pathname === "/api/review/queue") {
-    const filter = url.searchParams.get("filter") || "all";
-    const rows = db.prepare("SELECT * FROM papers ORDER BY rowid").all();
-    let items = rows.map(row => reviewItemForRow(db, row));
+    return sendJson(res, 200, getReviewQueue(db, url.searchParams.get("filter") || "all"));
+  }
 
-    const summary = {
-      total: items.length,
-      unverified: items.filter(item => item.flags.unverified).length,
-      legalReview: items.filter(item => item.flags.legalReview).length,
-      denied: items.filter(item => item.flags.denied).length,
-      reviewed: items.filter(item => item.review.status !== "pending").length
-    };
-
-    if (filter === "unverified") items = items.filter(item => item.flags.unverified);
-    else if (filter === "legal_review") items = items.filter(item => item.flags.legalReview);
-    else if (filter === "denied") items = items.filter(item => item.flags.denied);
-    else if (filter === "reviewed") items = items.filter(item => item.review.status !== "pending");
-
-    const score = item => item.flags.unverified ? 0 : item.flags.legalReview ? 1 : item.flags.denied ? 2 : 3;
-    items.sort((a, b) => score(a) - score(b) || a.id.localeCompare(b.id));
-
-    return sendJson(res, 200, { filter, summary, items });
+  if (req.method === "GET" && url.pathname === "/api/review/export.csv") {
+    const queue = getReviewQueue(db, url.searchParams.get("filter") || "all");
+    const header = [
+      "id", "中文标题", "英文标题", "期刊", "年份", "许可证代码", "许可证名称", "许可证来源",
+      "复核状态", "待核对", "需法务复核", "受限能力", "需法务复核能力", "复核备注", "来源备注", "最近复核时间"
+    ];
+    const rows = queue.items.map(item => [
+      item.id,
+      item.title.zh,
+      item.title.en,
+      item.journal,
+      item.year,
+      item.license.code,
+      item.license.label,
+      item.license.source,
+      REVIEW_STATUS_LABEL_SERVER[item.review.status] || item.review.status,
+      item.flags.unverified ? "是" : "否",
+      item.flags.legalReview ? "是" : "否",
+      item.deniedActions.map(entry => ACTION_LABEL[entry.action] || entry.action).join("；"),
+      item.legalReviewActions.map(action => ACTION_LABEL[action] || action).join("；"),
+      item.review.note,
+      item.license.note,
+      item.review.reviewedAt
+    ]);
+    return sendCsv(res, `review-${queue.filter}.csv`, [header, ...rows]);
   }
 
   if (req.method === "POST" && segments[1] === "review" && segments[2] && !segments[3]) {
@@ -317,17 +383,23 @@ async function handleApi(db, req, res, url) {
       : newCode === row.license_code
         ? row.license_note
         : `${label}（人工复核更新）`;
+    const licenseSource = payload.licenseSource
+      ? String(payload.licenseSource).trim().slice(0, 300)
+      : newCode !== row.license_code
+        ? `${label}（人工复核更新）`
+        : row.license_source;
 
     db.prepare(`
       UPDATE papers
       SET license_code = ?, license_label = ?, license_allowed_json = ?,
-          license_note = ?, review_status = ?, review_note = ?, reviewed_at = ?
+          license_note = ?, license_source = ?, review_status = ?, review_note = ?, reviewed_at = ?
       WHERE id = ?
     `).run(
       newCode,
       label,
       JSON.stringify(allowed),
       licenseNote,
+      licenseSource,
       reviewStatus,
       note,
       now,

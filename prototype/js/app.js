@@ -50,6 +50,12 @@
     rejected: "已驳回"
   };
 
+  const DECISION_LABEL = {
+    approve: "确认无误",
+    update_license: "更新许可证",
+    reject: "驳回"
+  };
+
   const state = {
     view: "discover",
     field: "全部",
@@ -71,6 +77,7 @@
     reviewSummary: document.getElementById("reviewSummary"),
     reviewFilters: document.getElementById("reviewFilters"),
     reviewList: document.getElementById("reviewList"),
+    reviewExport: document.getElementById("reviewExport"),
     feed: document.getElementById("feed"),
     feedTitle: document.getElementById("feedTitle"),
     resultCount: document.getElementById("resultCount"),
@@ -767,9 +774,16 @@
         ${denied ? `<p class="review-reasons"><strong>受限能力：</strong>${esc(denied)}</p>` : ""}
         ${review ? `<p class="review-reasons"><strong>需法务复核：</strong>${esc(review)}</p>` : ""}
         ${item.review.note ? `<p class="review-reasons"><strong>复核备注：</strong>${esc(item.review.note)}</p>` : ""}
+        ${item.license.source ? `<p class="review-reasons"><strong>许可来源：</strong>${esc(item.license.source)}</p>` : ""}
+        ${Array.isArray(item.history) && item.history.length ? `
+          <details class="review-history">
+            <summary>复核历史（${item.history.length}）</summary>
+            <ul>${item.history.map(entry => `<li><strong>${esc(DECISION_LABEL[entry.decision] || entry.decision)}</strong> · ${esc(entry.previousLicense || "—")} → ${esc(entry.newLicense || "—")} · ${esc(entry.createdAt)}${entry.note ? ` · ${esc(entry.note)}` : ""}</li>`).join("")}</ul>
+          </details>` : ""}
         <div class="review-actions">
           <select data-review-license aria-label="许可证">${options}</select>
           <input data-review-note maxlength="200" placeholder="复核备注（可选）" aria-label="复核备注">
+          <input data-review-source maxlength="300" placeholder="许可证来源 / 证据链接（可选）" aria-label="许可证来源">
           <button class="btn" data-review-action="update">更新许可证并复核</button>
           <button class="btn btn-primary" data-review-action="approve">确认无误</button>
         </div>
@@ -777,6 +791,9 @@
   }
 
   function renderReviewQueue(data) {
+    if (els.reviewExport) {
+      els.reviewExport.href = `/api/review/export.csv?filter=${encodeURIComponent(state.reviewFilter)}`;
+    }
     const summary = data.summary || {};
     const stats = [
       ["total", "全部", "", summary.total],
@@ -809,9 +826,12 @@
     if (!item) return;
     const licenseCode = item.querySelector("[data-review-license]").value;
     const note = item.querySelector("[data-review-note]").value.trim();
+    const licenseSource = item.querySelector("[data-review-source]")
+      ? item.querySelector("[data-review-source]").value.trim()
+      : "";
     const payload = action === "update"
-      ? { decision: "update_license", licenseCode, note }
-      : { decision: "approve", note };
+      ? { decision: "update_license", licenseCode, note, licenseSource }
+      : { decision: "approve", note, licenseSource };
 
     const response = await fetch(`/api/review/${encodeURIComponent(id)}`, {
       method: "POST",

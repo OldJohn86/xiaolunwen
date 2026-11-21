@@ -51,7 +51,8 @@ node server/server.mjs
 | GET | `/api/topics` | 专题合集 |
 | GET | `/api/license/:code?action=&commercial=` | 查询某个许可证的操作判定 |
 | GET | `/api/review/queue?filter=` | 复核队列：all / unverified / legal_review / denied / reviewed |
-| POST | `/api/review/:paperId` | 复核决定：approve / reject / update_license，可附 note 与 licenseCode |
+| GET | `/api/review/export.csv?filter=` | 导出当前筛选的复核队列（CSV，含 BOM，Excel 友好） |
+| POST | `/api/review/:paperId` | 复核决定：approve / reject / update_license，可附 note、licenseCode、licenseSource |
 
 示例：
 

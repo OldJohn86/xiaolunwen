@@ -286,6 +286,7 @@ it("复核工作台可更新许可证并立即重算能力", async () => {
       body: JSON.stringify({
         decision: "update_license",
         licenseCode: "CC-BY-4.0",
+        licenseSource: "https://example.org/license-evidence",
         note: "测试复核：确认开放许可"
       })
     });
@@ -295,9 +296,24 @@ it("复核工作台可更新许可证并立即重算能力", async () => {
     assert.equal(updated.item.flags.unverified, false);
     assert.equal(updated.item.review.status, "reviewed");
     assert.equal(updated.item.deniedActions.length, 0);
+    assert.equal(updated.item.license.source, "https://example.org/license-evidence");
+    assert.equal(updated.item.history.length, 1);
+    assert.equal(updated.item.history[0].previousLicense, "UNVERIFIED");
+    assert.equal(updated.item.history[0].newLicense, "CC-BY-4.0");
 
     const unverified = await (await fetch(started.url + "/api/review/queue?filter=unverified")).json();
     assert.ok(!unverified.items.some(item => item.id === "kalman-1960"));
+
+    const csvResponse = await fetch(started.url + "/api/review/export.csv?filter=all");
+    assert.equal(csvResponse.status, 200);
+    assert.match(csvResponse.headers.get("content-type") || "", /text\/csv/);
+    const csv = await csvResponse.text();
+    assert.ok(csv.includes("id,中文标题"));
+    assert.ok(csv.includes("kalman-1960"));
+    assert.ok(csv.includes("https://example.org/license-evidence"));
+
+    const csvUnverified = await (await fetch(started.url + "/api/review/export.csv?filter=unverified")).text();
+    assert.ok(!csvUnverified.includes("kalman-1960,"));
 
     const detail = await (await fetch(started.url + "/api/papers/kalman-1960")).json();
     assert.equal(detail.paper.license.allowed.translate_fulltext.allowed, true);

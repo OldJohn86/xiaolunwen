@@ -95,7 +95,10 @@
         <p class="section-sub">集中处理许可证待核对、需法务复核与被拒绝的能力。更新许可证会立即重算可用能力，并记录复核日志。</p>
       </div>
       <div id="reviewSummary" class="review-summary"></div>
-      <div class="filter-group" id="reviewFilters" aria-label="复核筛选"></div>
+      <div class="review-toolbar">
+        <div class="filter-group" id="reviewFilters" aria-label="复核筛选"></div>
+        <a class="btn" id="reviewExport" href="/api/review/export.csv?filter=all" download>导出 CSV</a>
+      </div>
       <div id="reviewList" class="review-list" aria-live="polite"></div>
     </section>
   </main>
