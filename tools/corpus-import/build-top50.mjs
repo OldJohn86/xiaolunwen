@@ -23,6 +23,14 @@ const demo = require(resolve(repoRoot, "prototype/js/data.js"));
 
 const DEFAULT_DATASET = process.env.XLW_TOP50_DATASET || "";
 const DEFAULT_OUT = resolve(repoRoot, "content/local/top50.json");
+const DETAILS_PATH = resolve(here, "top50-details.json");
+
+let details = {};
+try {
+  details = JSON.parse(readFileSync(DETAILS_PATH, "utf8"));
+} catch {
+  console.warn("未找到 top50-details.json，将使用占位摘要");
+}
 
 const args = process.argv.slice(2);
 function argValue(name, fallback) {
@@ -191,6 +199,8 @@ for (const paper of papers) {
 
   if (existingId) continue;
 
+  const detail = details[String(paper.rank)] || {};
+
   entries.push({
     id,
     sourceRank: paper.rank,
@@ -207,12 +217,12 @@ for (const paper of papers) {
     nobel: null,
     tag: "logic",
     license,
-    abstractZh: `该论文是“${paper.topic || "人工智能"}”方向的代表性工作，主题为“${paper.zh_title || paper.title}”。完整中文摘要与论证拆解待许可证核对与编辑复核后开放。`,
+    abstractZh: detail.abstractZh || `该论文是“${paper.topic || "人工智能"}”方向的代表性工作，主题为“${paper.zh_title || paper.title}”。完整中文摘要与论证拆解待许可证核对与编辑复核后开放。`,
     abstractEn: "",
-    formula: "",
+    formula: detail.formula || "",
     interpretation: null,
     demo: null,
-    thinking: [
+    thinking: detail.thinking || [
       "这篇论文试图解决什么问题，为什么重要？",
       "作者用什么方法与证据支持结论？",
       "结论的适用范围与局限是什么？"

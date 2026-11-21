@@ -242,7 +242,12 @@
 
     if (state.sort === "year") list.sort((a, b) => b.year - a.year);
     else if (state.sort === "citations") list.sort((a, b) => b.citations - a.citations);
-    else list.sort((a, b) => (b.nobel ? 1 : 0) - (a.nobel ? 1 : 0));
+    else if (state.topic) {
+      const topic = DATA.topics.find(t => t.id === state.topic);
+      if (topic) {
+        list.sort((a, b) => topic.papers.indexOf(a.id) - topic.papers.indexOf(b.id));
+      }
+    } else list.sort((a, b) => (b.nobel ? 1 : 0) - (a.nobel ? 1 : 0));
 
     return list;
   }

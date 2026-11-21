@@ -1,0 +1,166 @@
+{
+  "1": {
+    "abstractZh": "提出残差学习，让网络学习相对输入的残差映射，并用直连捷径缓解深层网络的训练困难；152 层残差网络在 ImageNet 上取得 3.57% 的 top-5 错误率。",
+    "formula": "y = F(x) + x"
+  },
+  "2": {
+    "abstractZh": "完全基于自注意力，去掉循环与卷积，编码器—解码器可高度并行；在 WMT 英德翻译上取得 28.4 BLEU，并显著缩短训练时间。",
+    "formula": "Attention(Q,K,V) = softmax(QKᵀ/√d)V"
+  },
+  "3": {
+    "abstractZh": "结合一阶矩与二阶矩的自适应估计，为每个参数调整步长；实现简单、内存开销低，适合大规模数据与稀疏梯度问题。",
+    "formula": "m_t = β₁m_{t−1} + (1−β₁)g_t"
+  },
+  "4": {
+    "abstractZh": "系统研究卷积网络深度对精度的影响，用堆叠的 3×3 小卷积核构建 16–19 层网络，在 ImageNet 2014 定位与分类赛道取得领先，并验证特征可迁移。",
+    "formula": "3×3 conv × 16–19 layers"
+  },
+  "5": {
+    "abstractZh": "训练约 6000 万参数的深层卷积网络参加 ImageNet 分类，使用 ReLU、Dropout 与高效 GPU 实现，把 top-5 错误率降到 17.0%，推动深度学习复兴。",
+    "formula": "ReLU + dropout + GPU"
+  },
+  "6": {
+    "abstractZh": "用输入门、遗忘门、输出门与恒定误差流控制记忆，缓解循环网络的长程依赖与梯度消失；每步计算复杂度为 O(1)。",
+    "formula": "c_t = f_t ⊙ c_{t−1} + i_t ⊙ g_t"
+  },
+  "7": {
+    "abstractZh": "建立通信的数学理论：用信息熵度量不确定性，给出信道容量公式，说明在噪声信道中可靠传输的极限，奠定信息论基础。",
+    "formula": "C = B log₂(1 + S/N)"
+  },
+  "8": {
+    "abstractZh": "综述深度学习：多层表示学习通过反向传播自动发现数据的层次化特征，在语音、视觉、检测与药物发现等任务上大幅刷新性能。",
+    "formula": "representation learning"
+  },
+  "9": {
+    "abstractZh": "用双向 Transformer 在大规模无标注文本上做掩码语言建模预训练，只需增加一个输出层微调，即可在问答、推理等任务上取得领先。",
+    "formula": "masked LM + next sentence"
+  },
+  "10": {
+    "abstractZh": "提供统一 API 的 Python 机器学习库，覆盖监督/无监督学习与模型选择，依赖少、文档完善，降低非专家使用机器学习的门槛。",
+    "formula": "fit(X, y) / predict(X)"
+  },
+  "12": {
+    "abstractZh": "用卷积、池化与全连接层组成端到端可训练的文档识别系统，反向传播直接优化字符分类，展示梯度学习在真实图像任务上的可行性。",
+    "formula": "conv → pool → fc"
+  },
+  "15": {
+    "abstractZh": "把图像切分成 16×16 的图块并当作 token 输入 Transformer；在超大规模数据预训练后，图像分类性能可与卷积网络竞争甚至超越。",
+    "formula": "image → 16×16 patches"
+  },
+  "16": {
+    "abstractZh": "每一层都以前面所有层的特征为输入，形成大量直连；特征复用缓解梯度消失、减少参数，并在分类任务上取得高精度。",
+    "formula": "x_l = H_l([x_0, …, x_{l−1}])"
+  },
+  "18": {
+    "abstractZh": "用并行的多尺度卷积分支与 1×1 降维构建 Inception 模块，在固定计算预算下同时增加深度与宽度，赢得 ILSVRC 2014。",
+    "formula": "multi-scale conv branches"
+  },
+  "19": {
+    "abstractZh": "发布面向场景理解的大规模目标检测与分割数据集，包含 91 类常见物体、33 万张图像与 250 万个实例标注，推动检测与分割研究。",
+    "formula": "91 categories · 328k images"
+  },
+  "21": {
+    "abstractZh": "系统介绍支持向量机库 LIBSVM 的实现细节，涵盖优化求解、收敛性、多分类、概率估计与参数选择，让 SVM 更容易落地。",
+    "formula": "kernel SVM library"
+  },
+  "22": {
+    "abstractZh": "描述 ILSVRC 基准的构建与历年结果，覆盖数百个类别与百万级图像，成为衡量视觉识别进展的核心竞赛。",
+    "formula": "1000 classes · 1.2M images"
+  },
+  "23": {
+    "abstractZh": "把分类网络改造成全卷积结构，接受任意尺寸输入并输出同尺寸像素预测，实现端到端的语义分割。",
+    "formula": "pixel-to-pixel conv"
+  },
+  "24": {
+    "abstractZh": "提出分层视觉 Transformer，用移位窗口把自注意力限制在局部窗口内，兼顾高分辨率效率与跨窗口信息交换。",
+    "formula": "shifted window attention"
+  },
+  "25": {
+    "abstractZh": "技术报告介绍可接受图像与文本输入的大规模多模态模型，在多项专业与学术基准上达到接近人类水平，并讨论对齐与评测方法。",
+    "formula": "multimodal next-token prediction"
+  },
+  "26": {
+    "abstractZh": "提出变分自编码器的重参数化技巧，使含连续隐变量的概率模型可用随机梯度端到端训练，并给出可扩展的变分下界估计。",
+    "formula": "ELBO = E_q[log p(x|z)] − KL(q(z|x)‖p(z))"
+  },
+  "27": {
+    "abstractZh": "提出 Squeeze-and-Excitation 模块，显式建模通道间依赖并自适应重标定通道权重，以很小开销提升卷积网络的表征能力。",
+    "formula": "s = σ(W₂δ(W₁·pool(x)))"
+  },
+  "28": {
+    "abstractZh": "提出 CBOW 与 Skip-gram 两种高效词向量模型，在 16 亿词语料上不到一天即可训练出高质量词向量，并捕捉语义与句法规律。",
+    "formula": "skip-gram / CBOW"
+  },
+  "29": {
+    "abstractZh": "用谱图卷积的一阶局部近似构造图上卷积，模型复杂度随边数线性增长，在半监督节点分类任务上显著优于相关方法。",
+    "formula": "H = σ(D̃^{−1/2}ÃD̃^{−1/2}XW)"
+  },
+  "31": {
+    "abstractZh": "对小批量激活做归一化，减少内部协变量偏移，允许更大的学习率与更快的收敛，成为深层网络训练的常用组件。",
+    "formula": "x̂ = (x − μ_B)/√(σ_B² + ε)"
+  },
+  "32": {
+    "abstractZh": "结合全局共现矩阵分解与局部窗口方法，提出对数双线性回归模型，在词向量中显式编码全局统计信息。",
+    "formula": "J = Σ f(X_ij)(w_iᵀw̃_j + b_i + b̃_j − log X_ij)²"
+  },
+  "34": {
+    "abstractZh": "把语言模型规模扩大到 1750 亿参数，展示无需微调、仅凭少量示例或指令即可完成多种语言任务的小样本能力。",
+    "formula": "in-context learning"
+  },
+  "35": {
+    "abstractZh": "用卷积网络提取区域候选的高层特征，替代手工特征，显著提升 PASCAL VOC 上的目标检测与语义分割性能。",
+    "formula": "region proposals + CNN features"
+  },
+  "36": {
+    "abstractZh": "系统复现并优化 BERT 预训练，发现原模型训练不足；通过更长训练、动态掩码、更大批次与更多数据取得更强结果。",
+    "formula": "dynamic masking + longer training"
+  },
+  "37": {
+    "abstractZh": "提出用于高维数据可视化的 t-SNE，用重尾 t 分布缓解点拥挤问题，在二维或三维地图中保留多尺度局部结构。",
+    "formula": "p_{j|i} ∝ exp(−‖x_i − x_j‖²/2σ_i²)"
+  },
+  "38": {
+    "abstractZh": "训练时随机丢弃神经元，阻止特征检测器共适应，显著降低过拟合，是一种简单而有效的正则化方法。",
+    "formula": "mask ~ Bernoulli(p)"
+  },
+  "39": {
+    "abstractZh": "重新审视 Inception 架构，用因子化卷积、辅助分类器与高效网格尺寸等设计，在保持计算预算的同时提升精度。",
+    "formula": "factorized convolutions"
+  },
+  "41": {
+    "abstractZh": "提出三层贝叶斯主题模型，把文档表示为话题的混合、话题表示为词的混合，并用变分 EM 进行近似推断。",
+    "formula": "p(w|d) = Σ_t p(w|t)p(t|d)"
+  },
+  "42": {
+    "abstractZh": "用卷积网络直接从原始像素学习 Q 值，结合经验回放与目标网络，在多个 Atari 游戏中达到或超过人类水平。",
+    "formula": "Q(s,a) ← r + γ max Q(s′,a′)"
+  },
+  "43": {
+    "abstractZh": "发现密集检测器的前景—背景极端不平衡是精度落后的主因，提出焦点损失降低易分样本权重，使单阶段检测器达到高精度。",
+    "formula": "FL = −α(1−p_t)^γ log p_t"
+  },
+  "44": {
+    "abstractZh": "提出近端策略优化，用裁剪的替代目标限制策略更新幅度，兼有 TRPO 的稳定性与更简单的实现，成为常用强化学习算法。",
+    "formula": "L = E[min(r_t A_t, clip(r_t,1±ε)A_t)]"
+  },
+  "45": {
+    "abstractZh": "提出倒残差结构与线性瓶颈，在移动端以更低计算量取得更高精度，并扩展到目标检测与语义分割。",
+    "formula": "inverted residuals + linear bottleneck"
+  },
+  "47": {
+    "abstractZh": "在 Faster R-CNN 上并行增加掩码分支，同时完成目标检测与实例分割，并可推广到人体姿态估计。",
+    "formula": "RoIAlign + mask head"
+  },
+  "48": {
+    "abstractZh": "指出自适应梯度算法中 L2 正则与权重衰减并不等价，提出解耦权重衰减，改善 Adam 的泛化表现。",
+    "formula": "θ ← θ − η(∇L + λθ)"
+  },
+  "49": {
+    "abstractZh": "用深度可分离卷积构建轻量网络，并提供宽度与分辨率两个乘子，方便在移动端权衡速度与精度。",
+    "formula": "depthwise separable conv"
+  },
+  "50": {
+    "abstractZh": "系统介绍强化学习的基本概念、表格解法、函数逼近与深度强化学习方法，是理解强化学习领域的经典教材。",
+    "formula": "agent–environment loop"
+  }
+}

@@ -148,6 +148,8 @@ PORT=8123 node server/server.mjs
 
 > 本地语料不会提交；缺少 `content/local/top50.json` 时，入库仍只包含演示语料 18 篇。
 
+![AI 必读 Top50 专题](docs/assets/preview-top50.jpg)
+
 ## 路线图
 
 | 阶段 | 范围 | 目标 |
