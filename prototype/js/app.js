@@ -321,7 +321,7 @@
 
     const abstractSection = `
       <section class="detail-section">
-        <h3>摘要 <span class="hint">原文摘要 · 中英对照</span></h3>
+        <h3>摘要 <span class="hint">平台整理 · 中英对照（非逐句翻译）</span></h3>
         <div class="lang-toggle" role="group" aria-label="摘要语言">
           <button type="button" data-lang="zh" class="is-active">中文</button>
           <button type="button" data-lang="en">English</button>

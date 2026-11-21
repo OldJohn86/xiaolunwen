@@ -1,0 +1,419 @@
+#!/usr/bin/env node
+/**
+ * M1 最小后端
+ *
+ * - 把 SQLite 中的论文、概念、专题与讨论以 JSON API 暴露
+ * - 许可证允许的操作随每条内容返回，前端据此隐藏受限功能
+ * - 同源托管 prototype/ 静态原型
+ *
+ * 运行前先执行：node server/ingest.mjs
+ * 启动：node server/server.mjs
+ */
+
+import { createServer as createHttpServer } from "node:http";
+import { createReadStream, statSync } from "node:fs";
+import { extname, resolve, sep, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
+import process from "node:process";
+import { ACTIONS, evaluateLicense } from "../tools/license-check/check.mjs";
+import { createDb, insertComment, listComments } from "./db.mjs";
+
+const here = dirname(fileURLToPath(import.meta.url));
+const PROTOTYPE_DIR = resolve(here, "../prototype");
+
+const MIME = {
+  ".html": "text/html; charset=utf-8",
+  ".css": "text/css; charset=utf-8",
+  ".js": "text/javascript; charset=utf-8",
+  ".mjs": "text/javascript; charset=utf-8",
+  ".json": "application/json; charset=utf-8",
+  ".svg": "image/svg+xml",
+  ".png": "image/png",
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".ico": "image/x-icon",
+  ".woff2": "font/woff2",
+  ".txt": "text/plain; charset=utf-8"
+};
+
+function sendJson(res, status, payload) {
+  const body = JSON.stringify(payload, null, 2);
+  res.writeHead(status, {
+    "Content-Type": "application/json; charset=utf-8",
+    "Cache-Control": "no-store",
+    "X-Content-Type-Options": "nosniff"
+  });
+  res.end(body);
+}
+
+function sendError(res, status, message) {
+  sendJson(res, status, { error: { status, message } });
+}
+
+function safeParse(value, fallback = null) {
+  if (!value) return fallback;
+  try {
+    return JSON.parse(value);
+  } catch {
+    return fallback;
+  }
+}
+
+function paperRowToListItem(row) {
+  return {
+    id: row.id,
+    title: { zh: row.title_zh, en: row.title_en },
+    authors: row.authors,
+    journal: row.journal,
+    year: row.year,
+    citations: row.citations,
+    field: row.field,
+    nobel: row.nobel,
+    tag: row.tag,
+    formula: row.formula,
+    link: row.link,
+    hasInterpretation: Boolean(row.has_interpretation),
+    license: {
+      code: row.license_code,
+      label: row.license_label,
+      note: row.license_note,
+      allowed: safeParse(row.license_allowed_json, {})
+    }
+  };
+}
+
+function commentRowToJson(row) {
+  return {
+    id: row.id,
+    author: row.author,
+    body: row.body,
+    createdAt: row.created_at,
+    timeLabel: row.time_label,
+    seeded: Boolean(row.seed)
+  };
+}
+
+function selectPaper(db, id) {
+  return db.prepare("SELECT * FROM papers WHERE id = ?").get(id);
+}
+
+function paperMatchesConcept(db, paperId) {
+  const rows = db.prepare("SELECT id, name, papers_json FROM concepts").all();
+  return rows
+    .filter(row => {
+      const ids = safeParse(row.papers_json, []);
+      return Array.isArray(ids) && ids.includes(paperId);
+    })
+    .map(row => ({ id: row.id, name: row.name }));
+}
+
+async function handleApi(db, req, res, url) {
+  const segments = url.pathname.split("/").filter(Boolean); // ["api", ...]
+
+  if (req.method === "GET" && url.pathname === "/api/health") {
+    const paperCount = db.prepare("SELECT COUNT(*) AS n FROM papers").get().n;
+    const commentCount = db.prepare("SELECT COUNT(*) AS n FROM comments").get().n;
+    return sendJson(res, 200, {
+      ok: true,
+      papers: paperCount,
+      comments: commentCount,
+      time: new Date().toISOString()
+    });
+  }
+
+  if (req.method === "GET" && url.pathname === "/api/papers") {
+    const clauses = [];
+    const params = [];
+    const field = url.searchParams.get("field");
+    const tag = url.searchParams.get("tag");
+    const q = (url.searchParams.get("q") || "").trim();
+
+    if (field) {
+      clauses.push("field = ?");
+      params.push(field);
+    }
+    if (tag) {
+      clauses.push("tag = ?");
+      params.push(tag);
+    }
+    if (q) {
+      clauses.push("(title_zh LIKE ? OR title_en LIKE ? OR authors LIKE ? OR abstract_zh LIKE ?)");
+      const pattern = `%${q}%`;
+      params.push(pattern, pattern, pattern, pattern);
+    }
+
+    const where = clauses.length ? `WHERE ${clauses.join(" AND ")}` : "";
+    const rows = db.prepare(`
+      SELECT id, title_zh, title_en, authors, journal, year, citations, field, nobel, tag,
+             formula, link, license_code, license_label, license_note, license_allowed_json,
+             (interpretation_json IS NOT NULL) AS has_interpretation
+      FROM papers
+      ${where}
+      ORDER BY CASE WHEN nobel IS NULL THEN 1 ELSE 0 END, year DESC
+    `).all(...params);
+
+    return sendJson(res, 200, { total: rows.length, papers: rows.map(paperRowToListItem) });
+  }
+
+  if (segments[1] === "papers" && segments[2] && segments[3] === "comments") {
+    const paper = selectPaper(db, segments[2]);
+    if (!paper) return sendError(res, 404, "论文不存在");
+
+    if (req.method === "GET" && segments.length === 4) {
+      return sendJson(res, 200, { comments: listComments(db, paper.id).map(commentRowToJson) });
+    }
+
+    if (req.method === "POST" && segments.length === 4) {
+      let payload;
+      try {
+        payload = await readJsonBody(req);
+      } catch (error) {
+        return sendError(res, error.status || 400, error.message);
+      }
+
+      const author = String(payload.author || "匿名").trim().slice(0, 40) || "匿名";
+      const body = String(payload.body || "").trim();
+      if (!body) return sendError(res, 400, "评论内容不能为空");
+      if (body.length > 1000) return sendError(res, 400, "评论内容不能超过 1000 字");
+
+      const comment = insertComment(db, paper.id, author, body, { seed: false });
+      return sendJson(res, 201, { comment: commentRowToJson(comment) });
+    }
+
+    return sendError(res, 405, "不支持的请求方法");
+  }
+
+  if (req.method === "GET" && segments[1] === "papers" && segments[2]) {
+    const paper = selectPaper(db, segments[2]);
+    if (!paper) return sendError(res, 404, "论文不存在");
+
+    const interpretation = safeParse(paper.interpretation_json, null);
+    const originalLang = paper.original_lang || "en";
+
+    return sendJson(res, 200, {
+      paper: {
+        id: paper.id,
+        title: { zh: paper.title_zh, en: paper.title_en },
+        authors: paper.authors,
+        journal: paper.journal,
+        year: paper.year,
+        citations: paper.citations,
+        field: paper.field,
+        nobel: paper.nobel,
+        tag: paper.tag,
+        formula: paper.formula,
+        link: paper.link,
+        originalLanguage: originalLang,
+        abstracts: {
+          zh: paper.abstract_zh ? { kind: "platform_summary", text: paper.abstract_zh } : null,
+          en: paper.abstract_en ? { kind: "platform_summary", text: paper.abstract_en } : null
+        },
+        license: {
+          code: paper.license_code,
+          label: paper.license_label,
+          note: paper.license_note,
+          allowed: safeParse(paper.license_allowed_json, {})
+        },
+        interpretation,
+        demo: safeParse(paper.demo_json, null),
+        thinking: safeParse(paper.thinking_json, []),
+        aiGenerated: Boolean(interpretation),
+        concepts: paperMatchesConcept(db, paper.id),
+        comments: listComments(db, paper.id).map(commentRowToJson)
+      }
+    });
+  }
+
+  if (req.method === "GET" && url.pathname === "/api/concepts") {
+    const rows = db.prepare("SELECT * FROM concepts ORDER BY id").all();
+    const titles = new Map(
+      db.prepare("SELECT id, title_zh FROM papers").all().map(row => [row.id, row.title_zh])
+    );
+    return sendJson(res, 200, {
+      concepts: rows.map(row => ({
+        id: row.id,
+        name: row.name,
+        nameEn: row.name_en,
+        definition: row.definition,
+        papers: safeParse(row.papers_json, []).map(id => ({ id, title: titles.get(id) || id }))
+      }))
+    });
+  }
+
+  if (req.method === "GET" && url.pathname === "/api/topics") {
+    const rows = db.prepare("SELECT * FROM topics ORDER BY id").all();
+    const titles = new Map(
+      db.prepare("SELECT id, title_zh FROM papers").all().map(row => [row.id, row.title_zh])
+    );
+    return sendJson(res, 200, {
+      topics: rows.map(row => ({
+        id: row.id,
+        name: row.name,
+        description: row.description,
+        tone: row.tone,
+        papers: safeParse(row.papers_json, []).map(id => ({ id, title: titles.get(id) || id }))
+      }))
+    });
+  }
+
+  if (req.method === "GET" && segments[1] === "license" && segments[2]) {
+    const code = decodeURIComponent(segments[2]);
+    const action = url.searchParams.get("action");
+    const commercial = url.searchParams.get("commercial") !== "false";
+
+    if (action) {
+      if (!ACTIONS.includes(action)) return sendError(res, 400, `未知操作：${action}`);
+      return sendJson(res, 200, evaluateLicense(code, action, { commercial }));
+    }
+
+    return sendJson(res, 200, {
+      license: code,
+      commercial,
+      actions: Object.fromEntries(
+        ACTIONS.map(item => [item, evaluateLicense(code, item, { commercial })])
+      )
+    });
+  }
+
+  return sendError(res, 404, "接口不存在");
+}
+
+function readJsonBody(req, limit = 64 * 1024) {
+  return new Promise((resolvePromise, reject) => {
+    const chunks = [];
+    let size = 0;
+
+    req.on("data", chunk => {
+      size += chunk.length;
+      if (size > limit) {
+        const error = new Error("请求体过大");
+        error.status = 413;
+        reject(error);
+        req.destroy();
+        return;
+      }
+      chunks.push(chunk);
+    });
+    req.on("end", () => {
+      try {
+        const raw = Buffer.concat(chunks).toString("utf8");
+        resolvePromise(raw ? JSON.parse(raw) : {});
+      } catch {
+        const error = new Error("JSON 解析失败");
+        error.status = 400;
+        reject(error);
+      }
+    });
+    req.on("error", reject);
+  });
+}
+
+function serveStatic(req, res, url) {
+  if (req.method !== "GET" && req.method !== "HEAD") {
+    return sendError(res, 405, "不支持的请求方法");
+  }
+
+  let pathname;
+  try {
+    pathname = decodeURIComponent(url.pathname);
+  } catch {
+    return sendError(res, 400, "无效路径");
+  }
+  if (pathname === "/") pathname = "/index.html";
+
+  const filePath = resolve(PROTOTYPE_DIR, "." + pathname);
+  if (filePath !== PROTOTYPE_DIR && !filePath.startsWith(PROTOTYPE_DIR + sep)) {
+    return sendError(res, 403, "禁止访问");
+  }
+
+  let stats;
+  try {
+    stats = statSync(filePath);
+  } catch {
+    return sendError(res, 404, "文件不存在");
+  }
+  if (!stats.isFile()) return sendError(res, 404, "文件不存在");
+
+  res.writeHead(200, {
+    "Content-Type": MIME[extname(filePath).toLowerCase()] || "application/octet-stream",
+    "Content-Length": stats.size,
+    "Cache-Control": "no-store",
+    "X-Content-Type-Options": "nosniff"
+  });
+  if (req.method === "HEAD") return res.end();
+  createReadStream(filePath).pipe(res);
+}
+
+export function createServer(db) {
+  return createHttpServer((req, res) => {
+    const url = new URL(req.url, `http://${req.headers.host || "localhost"}`);
+
+    if (url.pathname.startsWith("/api/")) {
+      handleApi(db, req, res, url).catch(error => {
+        console.error("[api]", error);
+        if (!res.headersSent) {
+          sendError(res, error.status || 500, error.status ? error.message : "服务器内部错误");
+        } else {
+          res.end();
+        }
+      });
+      return;
+    }
+
+    try {
+      serveStatic(req, res, url);
+    } catch (error) {
+      console.error("[static]", error);
+      if (!res.headersSent) sendError(res, 500, "服务器内部错误");
+    }
+  });
+}
+
+export function startServer(db, options = {}) {
+  const port = options.port !== undefined ? options.port : Number(process.env.PORT || 8787);
+  const host = options.host || process.env.HOST || "127.0.0.1";
+  const server = createServer(db);
+
+  return new Promise((resolvePromise, reject) => {
+    server.once("error", reject);
+    server.listen(port, host, () => {
+      server.removeListener("error", reject);
+      const address = server.address();
+      resolvePromise({
+        server,
+        host,
+        port: address.port,
+        url: `http://${host}:${address.port}`
+      });
+    });
+  });
+}
+
+const isMain = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+
+if (isMain) {
+  const db = createDb();
+  const hasPapers = db.prepare("SELECT COUNT(*) AS n FROM papers").get().n;
+  if (!hasPapers) {
+    console.error("数据库为空，请先运行：node server/ingest.mjs");
+    db.close();
+    process.exit(1);
+  }
+
+  const started = await startServer(db);
+  console.log("");
+  console.log("小论文 · 大智慧 — M1 服务已启动");
+  console.log(`API   ${started.url}/api/health`);
+  console.log(`原型  ${started.url}/`);
+  console.log("停止  Ctrl+C");
+  console.log("");
+
+  const shutdown = () => {
+    started.server.close(() => {
+      db.close();
+      process.exit(0);
+    });
+  };
+  process.on("SIGINT", shutdown);
+  process.on("SIGTERM", shutdown);
+}

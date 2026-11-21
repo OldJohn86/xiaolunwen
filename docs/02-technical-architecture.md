@@ -53,6 +53,8 @@ flowchart LR
 | 审核 | 第三方内容安全 API + 人工 | 国内合规必需 |
 | 可观测性 | OpenTelemetry + Sentry | 追踪 AI 调用成本与失败率 |
 
+> **实现状态**：M1 骨架以零依赖方式落地（`server/`，Node 内置 HTTP + SQLite），用于验证数据模型、许可证服务与 API 契约；正式环境仍按上表切换 Next.js 与 PostgreSQL。
+
 ## 2. 核心数据模型
 
 ```sql

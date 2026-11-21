@@ -50,6 +50,12 @@
 │   └── license-manifest.json    # 示例文献的许可证清单
 ├── tools/
 │   └── license-check/           # 可执行的许可证校验器 + 测试
+├── server/                      # M1 后端：SQLite 入库 + JSON API + 测试
+│   ├── README.md
+│   ├── db.mjs
+│   ├── ingest.mjs
+│   ├── server.mjs
+│   └── api.test.mjs
 └── prototype/                   # 可运行的前端原型（纯静态，Mock 数据）
     ├── README.md
     ├── index.html
@@ -76,16 +82,40 @@ node tools/license-check/check.mjs content/license-manifest.json
 node --test tools/license-check/check.test.mjs
 ```
 
+M1 后端同为零依赖（Node 22+ 内置 SQLite）：
+
+```bash
+node server/ingest.mjs      # 按许可证裁剪字段后写入 SQLite
+node server/server.mjs      # API + 原型，http://127.0.0.1:8787
+node --test server/api.test.mjs
+```
+
 **原型包含**：信息流卡片、学科/标签筛选、搜索、论文详情（双语摘要、AI 拆解、演示说明、讨论区、思辨问题）、知识库概念卡片、收藏（localStorage）。
 
 > ⚠️ 原型仅用于交互与视觉验证，论文元数据与解读内容均为演示用 Mock 数据，上线前必须逐篇核对原文与许可协议。
+
+## M1 后端（进行中）
+
+`server/` 提供最小可跑的数据层与 API，用来验证"许可证进入代码"这条链路：
+
+- **入库**：`server/ingest.mjs` 读取同一份原型数据，用许可证校验器计算每篇论文允许的操作；被拒绝的能力（商业使用、改编等）不会写入可展示字段，并记录到 `ingest_log`。
+- **API**：`server/server.mjs` 暴露 `/api/papers`、`/api/papers/:id`、`/api/concepts`、`/api/topics`、讨论读写与 `/api/license/:code`。
+- **能力下发**：每条内容返回 `license.allowed`，前端据此隐藏翻译、音频、商业入口。
+- **存储**：Node 22 内置 SQLite（实验特性），正式环境按技术方案切换 PostgreSQL。
+
+```bash
+curl http://127.0.0.1:8787/api/papers/einstein-1905
+curl "http://127.0.0.1:8787/api/license/CC-BY-NC-4.0?action=translate_fulltext"
+```
+
+当前示例结果：9 篇论文、35 项许可证检查、7 项拒绝、4 项需法务复核。详见 [server/README.md](server/README.md)。
 
 ## 路线图
 
 | 阶段 | 范围 | 目标 |
 | --- | --- | --- |
-| M0（当前） | 方案文档 + 交互原型 | 验证信息架构与阅读体验 |
-| M1 | 诺奖专题 10 篇 + 双语精读 + 单篇讨论 | 跑通"溯源—解读—讨论"最小闭环 |
+| M0（已完成） | 方案文档 + 交互原型 | 验证信息架构与阅读体验 |
+| M1（进行中） | 数据层 + 许可证服务 + API；诺奖专题内容 | 跑通"溯源—解读—讨论"最小闭环 |
 | M2 | 概念卡与检索、AI 抽取 + 人工复核工作台 | 知识库结构成型 |
 | M3 | 推荐信息流、创作者投稿、会员体系 | 内容供给与商业化验证 |
 

@@ -2,9 +2,10 @@
  * 注意：
  * 1. 以下论文元数据仅用于交互演示，上线前必须逐篇核对原文与许可证。
  * 2. 解读内容为示例性科普文本，不是官方结论；演示中标注了"原文出处"的位置为示意。
- * 3. license.deep 表示该文献在当前规则下是否允许进行翻译/演绎与深度解读。
+ * 3. license.deep 仅作为前端展示提示；真实准入由 tools/license-check 校验。
+ * 4. 摘要为平台整理/改写，不是逐句翻译；全文翻译需按许可证另行取得授权。
  */
-window.DATA = {
+const DATA = {
   papers: [
     {
       id: "einstein-1905",
@@ -18,6 +19,7 @@ window.DATA = {
       nobel: "1921 年诺贝尔物理学奖",
       tag: "demo",
       license: {
+        spdx: "PUBLIC-DOMAIN",
         code: "公有领域",
         note: "发表于 1905 年，著作权已进入公有领域",
         deep: true,
@@ -58,6 +60,7 @@ window.DATA = {
       nobel: "2017 年诺贝尔物理学奖",
       tag: "logic",
       license: {
+        spdx: "CC-BY-3.0",
         code: "CC BY 3.0",
         note: "开放获取，允许署名后传播与演绎",
         deep: true,
@@ -98,6 +101,7 @@ window.DATA = {
       nobel: "2024 年诺贝尔化学奖（相关成果）",
       tag: "logic",
       license: {
+        spdx: "CC-BY-4.0",
         code: "CC BY 4.0",
         note: "开放获取，允许署名后传播与演绎",
         deep: true,
@@ -138,6 +142,7 @@ window.DATA = {
       nobel: null,
       tag: "controversy",
       license: {
+        spdx: "ARXIV-NONEXCLUSIVE",
         code: "预印本（仅原文）",
         note: "未经同行评审；平台仅做争议梳理，不对真伪作判定",
         deep: true,
@@ -178,6 +183,7 @@ window.DATA = {
       nobel: "1962 年诺贝尔生理学或医学奖",
       tag: "logic",
       license: {
+        spdx: "PROPRIETARY-ABSTRACT-ONLY",
         code: "仅摘要",
         note: "受出版社版权限制，原型仅展示元数据与摘要",
         deep: false,
@@ -208,6 +214,7 @@ window.DATA = {
       nobel: "1978 年诺贝尔物理学奖",
       tag: "logic",
       license: {
+        spdx: "PROPRIETARY-ABSTRACT-ONLY",
         code: "仅摘要",
         note: "受出版社版权限制，原型仅展示元数据与摘要",
         deep: false,
@@ -228,6 +235,7 @@ window.DATA = {
     },
     {
       id: "tu-1977",
+      originalLang: "zh",
       titleZh: "一种新型倍半萜内酯——青蒿素",
       titleEn: "A New Sesquiterpene Lactone: Artemisinin",
       authors: "青蒿素结构研究协作组",
@@ -238,6 +246,7 @@ window.DATA = {
       nobel: "2015 年诺贝尔生理学或医学奖（相关成果）",
       tag: "logic",
       license: {
+        spdx: "PROPRIETARY-ABSTRACT-ONLY",
         code: "仅摘要",
         note: "受期刊版权限制，原型仅展示元数据与摘要",
         deep: false,
@@ -268,6 +277,7 @@ window.DATA = {
       nobel: "2020 年诺贝尔化学奖",
       tag: "logic",
       license: {
+        spdx: "PROPRIETARY-ABSTRACT-ONLY",
         code: "仅摘要",
         note: "受出版社版权限制，原型仅展示元数据与摘要",
         deep: false,
@@ -298,6 +308,7 @@ window.DATA = {
       nobel: "2013 年诺贝尔物理学奖",
       tag: "logic",
       license: {
+        spdx: "PROPRIETARY-ABSTRACT-ONLY",
         code: "仅摘要",
         note: "受出版社版权限制，原型仅展示元数据与摘要",
         deep: false,
@@ -354,3 +365,7 @@ window.DATA = {
     ]
   }
 };
+
+// 浏览器与 Node 双用：原型直接加载，服务端入库时 require 复用同一份数据。
+if (typeof window !== "undefined") window.DATA = DATA;
+if (typeof module !== "undefined" && module.exports) module.exports = DATA;
