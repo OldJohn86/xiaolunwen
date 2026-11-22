@@ -22,6 +22,15 @@ import { createDb, insertComment, listComments } from "./db.mjs";
 const here = dirname(fileURLToPath(import.meta.url));
 const PROTOTYPE_DIR = resolve(here, "../prototype");
 
+const EVENT_TYPES = new Set([
+  "paper_open",
+  "read_complete",
+  "evidence_expand",
+  "source_click",
+  "favorite",
+  "comment"
+]);
+
 const MIME = {
   ".html": "text/html; charset=utf-8",
   ".css": "text/css; charset=utf-8",
@@ -287,6 +296,88 @@ function sendCsv(res, filename, rows) {
   res.end("﻿" + body);
 }
 
+function getMetricsOverview(db) {
+  const currentWeek = db.prepare("SELECT strftime('%Y-%W', 'now') AS week").get().week;
+  const totals = {
+    events: db.prepare("SELECT COUNT(*) AS n FROM events").get().n,
+    users: db.prepare("SELECT COUNT(DISTINCT user_id) AS n FROM events").get().n
+  };
+  const byType = Object.fromEntries(
+    db.prepare("SELECT event_type, COUNT(*) AS n FROM events GROUP BY event_type").all()
+      .map(row => [row.event_type, row.n])
+  );
+
+  const funnelRow = db.prepare(`
+    SELECT
+      COUNT(DISTINCT CASE WHEN event_type = 'paper_open' THEN user_id END) AS openUsers,
+      COUNT(DISTINCT CASE WHEN event_type = 'evidence_expand' THEN user_id END) AS evidenceUsers,
+      COUNT(DISTINCT CASE WHEN event_type IN ('favorite', 'comment', 'source_click') THEN user_id END) AS interactionUsers
+    FROM events
+  `).get();
+
+  const readReachedAllTime = db.prepare(`
+    SELECT COUNT(DISTINCT user_id) AS n FROM (
+      SELECT user_id,
+        MAX(event_type = 'read_complete') AS rc,
+        MAX(event_type = 'evidence_expand') AS ev,
+        MAX(event_type IN ('favorite', 'comment', 'source_click')) AS it
+      FROM events
+      WHERE paper_id IS NOT NULL
+      GROUP BY user_id, paper_id
+    )
+    WHERE rc = 1 AND ev = 1 AND it = 1
+  `).get().n;
+
+  const weeklyRows = db.prepare(`
+    SELECT strftime('%Y-%W', created_at) AS week,
+           COUNT(*) AS events,
+           COUNT(DISTINCT user_id) AS users
+    FROM events
+    GROUP BY week
+    ORDER BY week DESC
+    LIMIT 12
+  `).all();
+
+  const reachedRows = db.prepare(`
+    SELECT week, COUNT(DISTINCT user_id) AS users FROM (
+      SELECT user_id, paper_id, strftime('%Y-%W', created_at) AS week,
+        MAX(event_type = 'read_complete') AS rc,
+        MAX(event_type = 'evidence_expand') AS ev,
+        MAX(event_type IN ('favorite', 'comment', 'source_click')) AS it
+      FROM events
+      WHERE paper_id IS NOT NULL
+      GROUP BY user_id, paper_id, week
+    )
+    WHERE rc = 1 AND ev = 1 AND it = 1
+    GROUP BY week
+    ORDER BY week DESC
+  `).all();
+  const reachedMap = new Map(reachedRows.map(row => [row.week, row.users]));
+
+  const weekly = weeklyRows.map(row => ({
+    week: row.week,
+    events: row.events,
+    users: row.users,
+    readReachedUsers: reachedMap.get(row.week) || 0
+  }));
+  const current = weekly.find(row => row.week === currentWeek);
+
+  return {
+    generatedAt: new Date().toISOString(),
+    currentWeek,
+    totals,
+    byType,
+    funnel: {
+      openUsers: funnelRow.openUsers || 0,
+      evidenceUsers: funnelRow.evidenceUsers || 0,
+      interactionUsers: funnelRow.interactionUsers || 0,
+      readReachedUsersAllTime: readReachedAllTime,
+      readReachedUsersThisWeek: current ? current.readReachedUsers : 0
+    },
+    weekly
+  };
+}
+
 async function handleApi(db, req, res, url) {
   const segments = url.pathname.split("/").filter(Boolean); // ["api", ...]
 
@@ -299,6 +390,40 @@ async function handleApi(db, req, res, url) {
       comments: commentCount,
       time: new Date().toISOString()
     });
+  }
+
+  if (req.method === "POST" && url.pathname === "/api/events") {
+    let payload;
+    try {
+      payload = await readJsonBody(req);
+    } catch (error) {
+      return sendError(res, error.status || 400, error.message);
+    }
+
+    const type = String(payload.type || "").trim();
+    if (!EVENT_TYPES.has(type)) return sendError(res, 400, `未知事件类型：${type}`);
+
+    const userId = String(payload.userId || "").trim().slice(0, 64);
+    if (!userId) return sendError(res, 400, "缺少 userId");
+
+    const paperId = payload.paperId ? String(payload.paperId).trim() : null;
+    if (paperId && !selectPaper(db, paperId)) return sendError(res, 404, "论文不存在");
+
+    const sessionId = payload.sessionId ? String(payload.sessionId).trim().slice(0, 64) : null;
+    const meta = payload.meta && typeof payload.meta === "object"
+      ? JSON.stringify(payload.meta).slice(0, 2000)
+      : null;
+
+    const result = db.prepare(`
+      INSERT INTO events (user_id, session_id, paper_id, event_type, meta_json, created_at)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `).run(userId, sessionId, paperId, type, meta, new Date().toISOString());
+
+    return sendJson(res, 201, { ok: true, id: Number(result.lastInsertRowid) });
+  }
+
+  if (req.method === "GET" && url.pathname === "/api/metrics/overview") {
+    return sendJson(res, 200, getMetricsOverview(db));
   }
 
   if (req.method === "GET" && url.pathname === "/api/bootstrap") {

@@ -25,6 +25,7 @@
       <button class="nav-btn is-active" data-view="discover">发现</button>
       <button class="nav-btn" data-view="knowledge">知识库</button>
       <button class="nav-btn" data-view="review" id="reviewNav" hidden>复核</button>
+      <button class="nav-btn" data-view="metrics" id="metricsNav" hidden>数据</button>
       <button class="nav-btn fav-btn" id="favBtn" aria-pressed="false">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20s-7-4.5-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.5-7 10-7 10Z"/></svg>
         收藏<span class="fav-count" id="favCount">0</span>
@@ -106,6 +107,21 @@
         <button class="btn" id="reviewExport" type="button">导出 CSV</button>
       </div>
       <div id="reviewList" class="review-list" aria-live="polite"></div>
+    </section>
+
+    <!-- 指标看板（仅 API 模式） -->
+    <section id="metricsView" hidden>
+      <div class="section-head">
+        <p class="eyebrow">METRICS</p>
+        <h1>指标看板</h1>
+        <p class="section-sub">匿名事件只记录在本机 SQLite。北极星：同一周内读完一篇、展开至少一个证据段落、并产生一次互动。</p>
+        <button class="btn" id="metricsRefresh" type="button">刷新</button>
+      </div>
+      <div id="metricsSummary" class="review-summary"></div>
+      <h2 class="sub-head">转化漏斗</h2>
+      <div id="metricsFunnel" class="metrics-funnel"></div>
+      <h2 class="sub-head">周读到达标</h2>
+      <div id="metricsWeekly" class="metrics-table"></div>
     </section>
   </main>
 

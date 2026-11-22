@@ -85,6 +85,19 @@ CREATE TABLE IF NOT EXISTS review_log (
   created_at TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS events (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id TEXT NOT NULL,
+  session_id TEXT,
+  paper_id TEXT,
+  event_type TEXT NOT NULL,
+  meta_json TEXT,
+  created_at TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_events_user ON events(user_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_events_type ON events(event_type);
+
 CREATE INDEX IF NOT EXISTS idx_papers_field ON papers(field);
 CREATE INDEX IF NOT EXISTS idx_papers_tag ON papers(tag);
 CREATE INDEX IF NOT EXISTS idx_comments_paper ON comments(paper_id);
@@ -132,7 +145,7 @@ export function transaction(db, fn) {
 }
 
 export function clearContent(db) {
-  runSql(db, "DELETE FROM comments; DELETE FROM ingest_log; DELETE FROM review_log; DELETE FROM concepts; DELETE FROM topics; DELETE FROM papers;");
+  runSql(db, "DELETE FROM comments; DELETE FROM ingest_log; DELETE FROM review_log; DELETE FROM events; DELETE FROM concepts; DELETE FROM topics; DELETE FROM papers;");
 }
 
 export function insertComment(db, paperId, author, body, options = {}) {

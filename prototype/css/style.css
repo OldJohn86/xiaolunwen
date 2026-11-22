@@ -376,6 +376,28 @@ main { max-width: 1240px; margin: 0 auto; padding: 28px clamp(16px, 4vw, 48px) 7
 .review-history { margin-top: 10px; font-size: 11.5px; color: var(--muted); }
 .review-history summary { cursor: pointer; color: var(--accent); }
 .review-history ul { margin: 8px 0 0; padding-left: 18px; line-height: 1.7; }
+
+/* 指标看板 */
+#metricsRefresh { margin-top: 10px; }
+.metrics-funnel { display: grid; gap: 10px; }
+.metrics-row {
+  display: grid; grid-template-columns: 160px 1fr 64px; gap: 12px;
+  align-items: center; font-size: 13px;
+}
+.metrics-row .metrics-label { color: var(--ink-2); }
+.metrics-row .metrics-value { text-align: right; font-family: var(--mono); font-size: 12px; color: var(--muted); }
+.metrics-bar { height: 10px; border-radius: 999px; background: var(--surface-2); overflow: hidden; border: 1px solid var(--line); }
+.metrics-bar span { display: block; height: 100%; background: linear-gradient(90deg, var(--accent-2), var(--accent)); border-radius: 999px; }
+.metrics-table { overflow-x: auto; border: 1px solid var(--line); border-radius: 12px; }
+.metrics-table table { width: 100%; border-collapse: collapse; font-size: 13px; background: var(--surface); }
+.metrics-table th, .metrics-table td { padding: 10px 14px; border-bottom: 1px solid var(--line); text-align: left; }
+.metrics-table th { background: var(--surface-2); color: var(--muted); font-weight: 600; font-size: 11.5px; }
+.metrics-table tr:last-child td { border-bottom: 0; }
+.metrics-empty { padding: 32px; text-align: center; color: var(--muted); font-size: 13px; }
+
+@media (max-width: 620px) {
+  .metrics-row { grid-template-columns: 110px 1fr 48px; }
+}
 .review-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 12px; }
 .review-actions select, .review-actions input {
   padding: 7px 10px; border: 1px solid var(--line); border-radius: 9px;

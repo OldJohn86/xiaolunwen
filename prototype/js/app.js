@@ -75,6 +75,12 @@
     knowledge: document.getElementById("knowledgeView"),
     review: document.getElementById("reviewView"),
     reviewNav: document.getElementById("reviewNav"),
+    metrics: document.getElementById("metricsView"),
+    metricsNav: document.getElementById("metricsNav"),
+    metricsSummary: document.getElementById("metricsSummary"),
+    metricsFunnel: document.getElementById("metricsFunnel"),
+    metricsWeekly: document.getElementById("metricsWeekly"),
+    metricsRefresh: document.getElementById("metricsRefresh"),
     reviewSummary: document.getElementById("reviewSummary"),
     reviewFilters: document.getElementById("reviewFilters"),
     reviewList: document.getElementById("reviewList"),
@@ -104,6 +110,8 @@
 
   let lastFocused = null;
   let toastTimer = null;
+  let activeReadPaper = null;
+  let readTracked = false;
 
   /* ---------- 工具 ---------- */
 
@@ -130,6 +138,61 @@
 
   function asArray(value) {
     return Array.isArray(value) ? value : [];
+  }
+
+  /* ---------- 匿名事件 ---------- */
+
+  function randomId() {
+    if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+      return crypto.randomUUID();
+    }
+    return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  }
+
+  function getOrCreateUserId() {
+    try {
+      let id = localStorage.getItem("xlw:user-id");
+      if (!id) {
+        id = randomId();
+        localStorage.setItem("xlw:user-id", id);
+      }
+      return id;
+    } catch {
+      return "anonymous";
+    }
+  }
+
+  function getOrCreateSessionId() {
+    try {
+      let id = sessionStorage.getItem("xlw:session-id");
+      if (!id) {
+        id = randomId();
+        sessionStorage.setItem("xlw:session-id", id);
+      }
+      return id;
+    } catch {
+      return "session";
+    }
+  }
+
+  const USER_ID = getOrCreateUserId();
+  const SESSION_ID = getOrCreateSessionId();
+
+  function track(type, paperId, meta) {
+    if (!state.apiMode) return;
+    const payload = {
+      type,
+      userId: USER_ID,
+      sessionId: SESSION_ID,
+      paperId: paperId || null,
+      meta: meta || {}
+    };
+    fetch("/api/events", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+      keepalive: true
+    }).catch(() => { /* 指标失败不影响阅读 */ });
   }
 
   /* ---------- 数据加载：API 优先，静态数据兜底 ---------- */
@@ -236,6 +299,7 @@
     els.discover.hidden = view !== "discover";
     els.knowledge.hidden = view !== "knowledge";
     els.review.hidden = view !== "review";
+    els.metrics.hidden = view !== "metrics";
     document.querySelectorAll(".nav-btn[data-view]").forEach(btn => {
       btn.classList.toggle("is-active", btn.dataset.view === view);
     });
@@ -265,6 +329,19 @@
         showView("review");
         loadReviewQueue().catch(error => {
           setHTML(els.reviewList, `<div class="review-empty">复核队列加载失败：${esc(error.message)}</div>`);
+        });
+      } else {
+        history.replaceState(null, "", "#/discover");
+        showView("discover");
+      }
+      return;
+    }
+    if (hash === "#/metrics") {
+      closeDetail(false);
+      if (state.apiMode) {
+        showView("metrics");
+        loadMetrics().catch(error => {
+          setHTML(els.metricsWeekly, `<div class="metrics-empty">指标加载失败：${esc(error.message)}</div>`);
         });
       } else {
         history.replaceState(null, "", "#/discover");
@@ -494,7 +571,7 @@
   function detailHTML(p) {
     const saved = state.saved.has(p.id);
     const conceptNames = findConceptNames(p.id);
-    const refLabel = ref => `<span class="ref" title="原型示意：上线后点击可定位到原文段落">${esc(ref)}</span>`;
+    const refLabel = ref => `<button type="button" class="ref" data-evidence="${esc(ref)}" title="原型示意：点击记为展开证据，上线后可定位到原文段落">${esc(ref)}</button>`;
 
     const abstractSection = `
       <section class="detail-section">
@@ -591,7 +668,7 @@
         <button class="btn" data-action="copy" data-link="${esc(p.link)}">
           ${copyIcon()}复制原文链接
         </button>
-        <a class="btn" href="${esc(p.link)}" target="_blank" rel="noopener noreferrer">前往原文 ↗</a>
+        <a class="btn" href="${esc(p.link)}" target="_blank" rel="noopener noreferrer" data-action="source">前往原文 ↗</a>
         <span class="spacer"></span>
         <span class="form-note">本内容仅为科普解读，不代表学术鉴定 · 原始结论以原文为准</span>
       </div>`;
@@ -605,6 +682,19 @@
     setHTML(els.detail, detailHTML(p));
     els.overlay.hidden = false;
     document.body.style.overflow = "hidden";
+
+    activeReadPaper = p.id;
+    readTracked = false;
+    track("paper_open", p.id);
+
+    const openedId = p.id;
+    setTimeout(() => {
+      if (activeReadPaper !== openedId || readTracked) return;
+      if (els.detail.scrollHeight <= els.detail.clientHeight + 24) {
+        readTracked = true;
+        track("read_complete", openedId);
+      }
+    }, 1500);
 
     bindLangToggle(p);
 
@@ -631,6 +721,8 @@
     els.overlay.hidden = true;
     els.detail.replaceChildren();
     delete els.detail.dataset.paperId;
+    activeReadPaper = null;
+    readTracked = false;
     document.body.style.overflow = "";
     if (updateHash && location.hash.startsWith("#/paper/")) {
       history.replaceState(null, "", state.view === "knowledge" ? "#/knowledge" : "#/discover");
@@ -650,6 +742,7 @@
     } else {
       state.saved.add(id);
       toast("已加入收藏");
+      track("favorite", id);
     }
     writeJSON(STORAGE_SAVED, Array.from(state.saved));
     syncSaveUI(id);
@@ -741,6 +834,7 @@
       writeJSON(key, local);
     }
 
+    track("comment", p.id);
     refreshCommentArea(p);
     toast(state.apiMode ? "已发布" : "已发布（本地存储）");
   }
@@ -883,6 +977,62 @@
     await loadReviewQueue();
   }
 
+  /* ---------- 指标看板 ---------- */
+
+  async function loadMetrics() {
+    const response = await fetch("/api/metrics/overview", { cache: "no-store" });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    renderMetrics(await response.json());
+  }
+
+  function renderMetrics(data) {
+    const funnel = data.funnel || {};
+    const stats = [
+      ["本周读到达标", funnel.readReachedUsersThisWeek, "is-ok"],
+      ["打开论文人数", funnel.openUsers, ""],
+      ["展开证据人数", funnel.evidenceUsers, "is-info"],
+      ["互动人数", funnel.interactionUsers, ""],
+      ["事件总数", data.totals ? data.totals.events : 0, ""]
+    ];
+    setHTML(els.metricsSummary, stats.map(([label, value, tone]) =>
+      `<div class="review-stat ${tone}"><strong>${esc(value == null ? 0 : value)}</strong><span>${esc(label)}</span></div>`
+    ).join(""));
+
+    const rows = [
+      ["打开论文", funnel.openUsers],
+      ["展开证据", funnel.evidenceUsers],
+      ["产生互动", funnel.interactionUsers],
+      ["读到达标（全周期）", funnel.readReachedUsersAllTime]
+    ];
+    const max = Math.max(1, ...rows.map(([, value]) => value || 0));
+    setHTML(els.metricsFunnel, rows.map(([label, value]) => {
+      const count = value || 0;
+      const width = Math.round((count / max) * 100);
+      return `<div class="metrics-row">
+        <span class="metrics-label">${esc(label)}</span>
+        <div class="metrics-bar"><span style="width:${width}%"></span></div>
+        <span class="metrics-value">${esc(count)}</span>
+      </div>`;
+    }).join(""));
+
+    if (!Array.isArray(data.weekly) || !data.weekly.length) {
+      setHTML(els.metricsWeekly, `<div class="metrics-empty">还没有事件。打开几篇论文、展开证据并互动后，这里会出现数据。</div>`);
+      return;
+    }
+
+    setHTML(els.metricsWeekly, `
+      <table>
+        <thead><tr><th>周</th><th>事件</th><th>用户</th><th>读到达标用户</th></tr></thead>
+        <tbody>${data.weekly.map(row => `
+          <tr>
+            <td>${esc(row.week)}${row.week === data.currentWeek ? "（本周）" : ""}</td>
+            <td>${esc(row.events)}</td>
+            <td>${esc(row.users)}</td>
+            <td>${esc(row.readReachedUsers)}</td>
+          </tr>`).join("")}</tbody>
+      </table>`);
+  }
+
   /* ---------- 事件 ---------- */
 
   function bindEvents() {
@@ -924,6 +1074,10 @@
       exportReviewCsv().catch(error => toast(error.message));
     });
 
+    els.metricsRefresh.addEventListener("click", () => {
+      loadMetrics().catch(error => toast(error.message));
+    });
+
     els.search.addEventListener("input", () => {
       state.query = els.search.value;
       state.topic = null;
@@ -957,13 +1111,31 @@
         const routes = {
           discover: "#/discover",
           knowledge: "#/knowledge",
-          review: "#/review"
+          review: "#/review",
+          metrics: "#/metrics"
         };
         location.hash = routes[btn.dataset.view] || "#/discover";
       });
     });
 
     document.addEventListener("click", event => {
+      const evidenceBtn = event.target.closest("[data-evidence]");
+      if (evidenceBtn) {
+        const paperId = els.detail.dataset.paperId;
+        if (paperId) {
+          track("evidence_expand", paperId, { ref: evidenceBtn.dataset.evidence });
+        }
+        toast(`原文定位：${evidenceBtn.dataset.evidence}（原型示意）`);
+        return;
+      }
+
+      const sourceLink = event.target.closest("[data-action='source']");
+      if (sourceLink) {
+        const paperId = els.detail.dataset.paperId;
+        if (paperId) track("source_click", paperId, { href: sourceLink.href });
+        return;
+      }
+
       const reviewBtn = event.target.closest("[data-review-action]");
       if (reviewBtn) {
         event.preventDefault();
@@ -1013,6 +1185,8 @@
 
       const copyBtn = event.target.closest("[data-action='copy']");
       if (copyBtn) {
+        const paperId = els.detail.dataset.paperId;
+        if (paperId) track("source_click", paperId, { copy: true });
         const text = copyBtn.dataset.link;
         if (navigator.clipboard && navigator.clipboard.writeText) {
           navigator.clipboard.writeText(text).then(
@@ -1048,6 +1222,14 @@
       if (event.target === els.overlay) closeDetail(true);
     });
 
+    els.detail.addEventListener("scroll", () => {
+      if (!activeReadPaper || readTracked) return;
+      if (els.detail.scrollTop + els.detail.clientHeight >= els.detail.scrollHeight - 80) {
+        readTracked = true;
+        track("read_complete", activeReadPaper);
+      }
+    }, { passive: true });
+
     window.addEventListener("hashchange", route);
   }
 
@@ -1064,6 +1246,7 @@
         : "数据来源：本地静态示例 · 使用内置许可证提示";
     }
     if (els.reviewNav) els.reviewNav.hidden = !state.apiMode;
+    if (els.metricsNav) els.metricsNav.hidden = !state.apiMode;
     if (els.reviewToken) els.reviewToken.value = state.reviewToken;
     if (els.reviewAuthNote && state.reviewToken) {
       els.reviewAuthNote.textContent = "已载入本标签页保存的令牌";

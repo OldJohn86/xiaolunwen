@@ -43,6 +43,8 @@ node server/server.mjs
 | 方法 | 路径 | 说明 |
 | --- | --- | --- |
 | GET | `/api/health` | 健康检查与内容计数 |
+| POST | `/api/events` | 记录匿名事件：paper_open / read_complete / evidence_expand / source_click / favorite / comment |
+| GET | `/api/metrics/overview` | 北极星指标、转化漏斗与最近 12 周数据 |
 | GET | `/api/bootstrap` | 前端聚合数据：论文、概念、专题、讨论 |
 | GET | `/api/papers?field=&tag=&q=` | 论文列表（不含解读正文） |
 | GET | `/api/papers/:id` | 论文详情、许可证能力、解读、讨论 |

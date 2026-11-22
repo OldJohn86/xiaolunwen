@@ -266,6 +266,59 @@ it("本地语料合并时跳过重复 id，并新增专题", () => {
   }
 });
 
+it("指标闭环记录事件并计算周读到达标", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "xlw-metrics-"));
+  const db = createDb(join(dir, "metrics.db"));
+  const started = await startServer(db, { port: 0, host: "127.0.0.1" });
+
+  try {
+    ingest(db, undefined, { now: "2026-11-21T00:00:00.000Z", localCorpus: null });
+
+    const post = (body) => fetch(started.url + "/api/events", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body)
+    });
+
+    await post({ type: "paper_open", userId: "u1", paperId: "einstein-1905" });
+    await post({ type: "read_complete", userId: "u1", paperId: "einstein-1905" });
+    await post({ type: "evidence_expand", userId: "u1", paperId: "einstein-1905" });
+    await post({ type: "favorite", userId: "u1", paperId: "einstein-1905" });
+    await post({ type: "paper_open", userId: "u1", paperId: "ligo-2016" });
+    await post({ type: "paper_open", userId: "u2", paperId: "ligo-2016" });
+    await post({ type: "read_complete", userId: "u2", paperId: "ligo-2016" });
+    await post({ type: "evidence_expand", userId: "u2", paperId: "ligo-2016" });
+
+    const metrics = await (await fetch(started.url + "/api/metrics/overview")).json();
+    assert.equal(metrics.totals.events, 8);
+    assert.equal(metrics.totals.users, 2);
+    assert.equal(metrics.funnel.openUsers, 2);
+    assert.equal(metrics.funnel.evidenceUsers, 2);
+    assert.equal(metrics.funnel.interactionUsers, 1);
+    assert.equal(metrics.funnel.readReachedUsersAllTime, 1);
+    assert.equal(metrics.funnel.readReachedUsersThisWeek, 1);
+    assert.equal(metrics.weekly[0].readReachedUsers, 1);
+    assert.equal(metrics.byType.paper_open, 3);
+
+    const invalid = await post({ type: "unknown_event", userId: "u1" });
+    assert.equal(invalid.status, 400);
+
+    const missingUser = await post({ type: "paper_open" });
+    assert.equal(missingUser.status, 400);
+
+    const unknownPaper = await post({ type: "paper_open", userId: "u1", paperId: "not-exist" });
+    assert.equal(unknownPaper.status, 404);
+
+    const after = await (await fetch(started.url + "/api/metrics/overview")).json();
+    assert.equal(after.totals.events, 8);
+  } finally {
+    started.server.closeAllConnections();
+    await new Promise(resolve => started.server.close(resolve));
+    closeDb(db);
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 it("复核工作台可更新许可证并立即重算能力", async () => {
   const dir = mkdtempSync(join(tmpdir(), "xlw-review-"));
   const db = createDb(join(dir, "review.db"));

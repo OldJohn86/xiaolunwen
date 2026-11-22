@@ -130,6 +130,16 @@ API 模式下导航会出现「复核」入口，集中处理许可证待核对�
 
 ![复核工作台](docs/assets/preview-review.jpg)
 
+## 指标闭环
+
+原型记录 6 类匿名事件：打开论文、读完、展开证据、溯源点击、收藏、评论。用户 id 存在 localStorage，会话 id 存在 sessionStorage，事件写入本机 SQLite；不采集账号与个人信息。
+
+- **北极星**：同一周内，同一用户对同一篇论文同时满足「读完 + 展开 ≥1 个证据段落 + 产生 ≥1 次互动」。
+- 事件接口：`POST /api/events`；看板数据：`GET /api/metrics/overview`。
+- API 模式下导航出现「数据」入口，展示本周读到达标、转化漏斗与最近 12 周趋势。
+
+![指标看板](docs/assets/preview-metrics.jpg)
+
 ## 本地 PDF 导入
 
 `tools/pdf-import/` 可以把本地下载的 PDF 转成候选元数据清单，再人工核对 DOI 与许可证后入库：
