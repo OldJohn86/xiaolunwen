@@ -317,13 +317,13 @@ function getMetricsOverview(db) {
 
   const readReachedAllTime = db.prepare(`
     SELECT COUNT(DISTINCT user_id) AS n FROM (
-      SELECT user_id,
+      SELECT user_id, paper_id, strftime('%Y-%W', created_at) AS week,
         MAX(event_type = 'read_complete') AS rc,
         MAX(event_type = 'evidence_expand') AS ev,
         MAX(event_type IN ('favorite', 'comment', 'source_click')) AS it
       FROM events
       WHERE paper_id IS NOT NULL
-      GROUP BY user_id, paper_id
+      GROUP BY user_id, paper_id, week
     )
     WHERE rc = 1 AND ev = 1 AND it = 1
   `).get().n;

@@ -311,6 +311,19 @@ it("指标闭环记录事件并计算周读到达标", async () => {
 
     const after = await (await fetch(started.url + "/api/metrics/overview")).json();
     assert.equal(after.totals.events, 8);
+
+    // 跨周分散的事件不能合并为一次“读到达标”
+    const insert = db.prepare(`
+      INSERT INTO events (user_id, session_id, paper_id, event_type, meta_json, created_at)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `);
+    insert.run("u3", null, "ligo-2016", "read_complete", null, "2026-01-05T00:00:00.000Z");
+    insert.run("u3", null, "ligo-2016", "evidence_expand", null, "2026-01-05T00:00:00.000Z");
+    insert.run("u3", null, "ligo-2016", "favorite", null, "2026-01-12T00:00:00.000Z");
+
+    const crossWeek = await (await fetch(started.url + "/api/metrics/overview")).json();
+    assert.equal(crossWeek.funnel.readReachedUsersAllTime, 1);
+    assert.equal(crossWeek.totals.events, 11);
   } finally {
     started.server.closeAllConnections();
     await new Promise(resolve => started.server.close(resolve));
