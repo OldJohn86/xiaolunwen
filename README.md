@@ -45,6 +45,9 @@
 │   ├── 02-technical-architecture.md  # 技术架构：数据模型、AI 流水线、合规
 │   ├── 03-roadmap.md            # 里程碑、MVP 范围、指标体系
 │   ├── 04-license-policy.md     # 许可证策略、操作模型与决策矩阵
+│   ├── 05-demo-script.md        # 3 分钟 / 8 分钟演示脚本与问答
+│   ├── 06-usability-test-kit.md # 5 人可用性测试方案
+│   ├── 07-one-page-brief.md     # 一页纸项目简介
 │   └── assets/                  # README 预览图
 ├── content/
 │   ├── license-manifest.json    # 示例文献的许可证清单
@@ -97,6 +100,12 @@ node --test server/api.test.mjs
 **原型包含**：信息流卡片、学科/标签筛选、搜索、论文详情（双语摘要、AI 拆解、演示说明、讨论区、思辨问题）、知识库概念卡片、收藏（localStorage）。
 
 > ⚠️ 原型仅用于交互与视觉验证，论文元数据与解读内容均为演示用 Mock 数据，上线前必须逐篇核对原文与许可协议。
+
+## 演示与测试
+
+- [3 分钟 / 8 分钟演示脚本](docs/05-demo-script.md)：含预设问答与当前数字口径。
+- [5 人可用性测试方案](docs/06-usability-test-kit.md)：任务脚本、记录表与判定规则。
+- [一页纸项目简介](docs/07-one-page-brief.md)：问题、方案、进展、合规与路线图。
 
 ## M1 后端（进行中）
 
@@ -200,6 +209,9 @@ PORT=8123 node server/server.mjs
 - [技术架构（docs/02-technical-architecture.md）](docs/02-technical-architecture.md)
 - [路线图（docs/03-roadmap.md）](docs/03-roadmap.md)
 - [许可证策略与校验器（docs/04-license-policy.md）](docs/04-license-policy.md)
+- [演示脚本（docs/05-demo-script.md）](docs/05-demo-script.md)
+- [5 人可用性测试方案（docs/06-usability-test-kit.md）](docs/06-usability-test-kit.md)
+- [一页纸项目简介（docs/07-one-page-brief.md）](docs/07-one-page-brief.md)
 - [原始设计方案（xiaolunwen.txt）](xiaolunwen.txt)
 
 ## 许可证
