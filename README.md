@@ -48,6 +48,8 @@
 │   ├── 05-demo-script.md        # 3 分钟 / 8 分钟演示脚本与问答
 │   ├── 06-usability-test-kit.md # 5 人可用性测试方案
 │   ├── 07-one-page-brief.md     # 一页纸项目简介
+│   ├── 08-pitch-outline.md      # 12 页答辩 PPT 大纲与讲稿
+│   ├── pitch-deck.pdf           # 12 页答辩 PDF
 │   └── assets/                  # README 预览图
 ├── content/
 │   ├── license-manifest.json    # 示例文献的许可证清单
@@ -62,6 +64,9 @@
 │   ├── ingest.mjs
 │   ├── server.mjs
 │   └── api.test.mjs
+├── slides/                      # 零依赖 HTML 答辩幻灯片（12 页）
+│   ├── README.md
+│   └── index.html
 └── prototype/                   # 可运行的前端原型（纯静态，Mock 数据）
     ├── README.md
     ├── index.html
@@ -106,6 +111,7 @@ node --test server/api.test.mjs
 - [3 分钟 / 8 分钟演示脚本](docs/05-demo-script.md)：含预设问答与当前数字口径。
 - [5 人可用性测试方案](docs/06-usability-test-kit.md)：任务脚本、记录表与判定规则。
 - [一页纸项目简介](docs/07-one-page-brief.md)：问题、方案、进展、合规与路线图。
+- [12 页答辩大纲](docs/08-pitch-outline.md) · [答辩 PDF](docs/pitch-deck.pdf) · [HTML 幻灯片](slides/index.html)：可直接放映或修改。
 
 ## M1 后端（进行中）
 
@@ -212,6 +218,8 @@ PORT=8123 node server/server.mjs
 - [演示脚本（docs/05-demo-script.md）](docs/05-demo-script.md)
 - [5 人可用性测试方案（docs/06-usability-test-kit.md）](docs/06-usability-test-kit.md)
 - [一页纸项目简介（docs/07-one-page-brief.md）](docs/07-one-page-brief.md)
+- [12 页答辩大纲（docs/08-pitch-outline.md）](docs/08-pitch-outline.md)
+- [答辩 PDF（docs/pitch-deck.pdf）](docs/pitch-deck.pdf) · [HTML 幻灯片（slides/index.html）](slides/index.html)
 - [原始设计方案（xiaolunwen.txt）](xiaolunwen.txt)
 
 ## 许可证

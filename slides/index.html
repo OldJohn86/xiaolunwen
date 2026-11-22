@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>小论文 · 大智慧 — 答辩演示</title>
+  <style>
+    :root {
+      --bg: #f3f0e8;
+      --surface: #fffdf8;
+      --surface-2: #faf7ef;
+      --ink: #1c1a16;
+      --ink-2: #3d3932;
+      --muted: #6f695f;
+      --line: #e3ddd0;
+      --accent: #b45309;
+      --accent-2: #d97706;
+      --green: #166534;
+      --blue: #1d4ed8;
+      --red: #b91c1c;
+      --serif: "Songti SC", "Noto Serif SC", "Source Han Serif SC", Georgia, serif;
+      --sans: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+      --mono: "SF Mono", ui-monospace, Menlo, monospace;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; height: 100%; }
+    body {
+      background: #171612;
+      color: var(--ink);
+      font-family: var(--sans);
+      overflow: hidden;
+      display: grid;
+      place-items: center;
+    }
+
+    .deck {
+      position: relative;
+      width: 1280px;
+      height: 720px;
+      transform-origin: center center;
+      background: var(--bg);
+      box-shadow: 0 30px 90px rgba(0, 0, 0, .45);
+      overflow: hidden;
+    }
+
+    .slide {
+      position: absolute;
+      inset: 0;
+      display: none;
+      background: var(--bg);
+    }
+    .slide.active { display: block; }
+
+    .slide-inner {
+      width: 100%;
+      height: 100%;
+      padding: 56px 72px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .eyebrow {
+      margin: 0 0 12px;
+      font-family: var(--mono);
+      font-size: 12px;
+      letter-spacing: .2em;
+      text-transform: uppercase;
+      color: var(--accent-2);
+    }
+
+    h1 { margin: 0; font-family: var(--serif); font-size: 62px; line-height: 1.16; letter-spacing: .01em; }
+    h2 { margin: 0 0 18px; font-family: var(--serif); font-size: 40px; line-height: 1.25; }
+    h3 { margin: 0 0 6px; font-family: var(--serif); font-size: 22px; }
+    p { margin: 0; font-size: 18px; line-height: 1.7; color: var(--ink-2); }
+    .muted { color: var(--muted); }
+    .accent { color: var(--accent); }
+
+    .footer {
+      position: absolute;
+      left: 72px; right: 72px; bottom: 22px;
+      display: flex; justify-content: space-between;
+      font-size: 11px; color: var(--muted); font-family: var(--mono);
+    }
+
+    .dark { background: radial-gradient(900px 500px at 85% 10%, rgba(217,119,6,.28), transparent 60%),
+                           radial-gradient(700px 500px at 0% 100%, rgba(17,94,89,.32), transparent 60%),
+                           linear-gradient(135deg, #1b1a17, #26231d 55%, #1d2422); color: #f6f1e5; }
+    .dark h1, .dark h2 { color: #f6f1e5; }
+    .dark p { color: #cfc8b8; }
+    .dark .eyebrow { color: #e9a963; }
+    .dark .footer { color: #8f897c; }
+
+    .cover-inner { justify-content: center; }
+    .cover-sub { margin: 18px 0 22px; font-size: 22px; color: #d8d0c0; }
+    .cover-line { margin-top: 12px; font-size: 19px; color: #f0b878; font-family: var(--serif); }
+    .cover-badges { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 30px; }
+    .cover-badges span {
+      padding: 6px 12px; border: 1px solid rgba(246,241,229,.22); border-radius: 999px;
+      font-size: 12px; color: #e6dfd0; background: rgba(255,255,255,.04);
+    }
+
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; margin-top: 10px; }
+    .card {
+      padding: 22px; border-radius: 16px; border: 1px solid var(--line);
+      background: var(--surface); box-shadow: 0 4px 16px rgba(28,26,22,.04);
+    }
+    .card .num { font-family: var(--mono); font-size: 11px; color: var(--accent); letter-spacing: .1em; }
+    .card h3 { margin-top: 8px; }
+    .card p { font-size: 15px; line-height: 1.65; }
+
+    .layers { display: grid; gap: 12px; margin-top: 8px; }
+    .layer {
+      display: grid; grid-template-columns: 170px 1fr; gap: 18px; align-items: center;
+      padding: 16px 20px; border-radius: 14px; border: 1px solid var(--line);
+      background: var(--surface);
+    }
+    .layer strong { font-family: var(--serif); font-size: 20px; }
+    .layer span { font-size: 15px; color: var(--ink-2); }
+    .layer:nth-child(1) { border-left: 5px solid var(--accent); }
+    .layer:nth-child(2) { border-left: 5px solid var(--accent-2); }
+    .layer:nth-child(3) { border-left: 5px solid var(--blue); }
+    .layer:nth-child(4) { border-left: 5px solid var(--green); }
+
+    .split { display: grid; grid-template-columns: 0.9fr 1.1fr; gap: 34px; align-items: center; flex: 1; }
+    .shot {
+      width: 100%; max-height: 520px; object-fit: contain;
+      border: 1px solid var(--line); border-radius: 12px; background: #fff;
+      box-shadow: 0 14px 40px rgba(28,26,22,.14);
+    }
+    .bullets { display: grid; gap: 12px; margin-top: 8px; }
+    .bullet { display: flex; gap: 10px; font-size: 16px; line-height: 1.6; color: var(--ink-2); }
+    .bullet::before { content: "—"; color: var(--accent); flex: 0 0 auto; }
+    .tag {
+      display: inline-block; margin-bottom: 8px; padding: 3px 10px; border-radius: 999px;
+      font-size: 11px; font-weight: 600; background: var(--surface-2); border: 1px solid var(--line); color: var(--ink-2);
+    }
+    .tag.warn { background: #fbe7e5; color: var(--red); border-color: rgba(185,28,28,.2); }
+    .tag.ok { background: #e6f1e7; color: var(--green); border-color: rgba(22,101,52,.2); }
+    .tag.info { background: #e7ecfb; color: var(--blue); border-color: rgba(29,78,216,.2); }
+
+    table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 15px; }
+    th, td { padding: 11px 14px; border-bottom: 1px solid var(--line); text-align: left; }
+    th { background: var(--surface-2); color: var(--muted); font-size: 12px; font-weight: 600; }
+    td:first-child { font-weight: 600; }
+    .yes { color: var(--green); font-weight: 600; }
+    .no { color: var(--red); font-weight: 600; }
+
+    .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin: 18px 0 22px; }
+    .stat { padding: 20px; border-radius: 16px; border: 1px solid var(--line); background: var(--surface); }
+    .stat strong { display: block; font-family: var(--serif); font-size: 44px; line-height: 1.1; color: var(--accent); }
+    .stat span { font-size: 12px; color: var(--muted); }
+    .note-line { font-size: 13px; color: var(--muted); line-height: 1.7; }
+
+    .timeline { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-top: 14px; }
+    .phase { padding: 18px; border-radius: 14px; border: 1px solid var(--line); background: var(--surface); }
+    .phase .phase-tag { font-family: var(--mono); font-size: 10px; letter-spacing: .1em; color: var(--accent); }
+    .phase h3 { margin: 8px 0 8px; font-size: 19px; }
+    .phase p { font-size: 13px; line-height: 1.6; }
+    .phase.done { border-top: 4px solid var(--green); }
+    .phase.current { border-top: 4px solid var(--accent); }
+    .phase.next { border-top: 4px solid var(--line); }
+
+    .closing { justify-content: center; }
+    .closing .big { font-family: var(--serif); font-size: 54px; line-height: 1.25; margin: 0 0 20px; color: #f6f1e5; }
+    .asks { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 30px; }
+    .ask { padding: 16px 18px; border-radius: 12px; border: 1px solid rgba(255,255,255,.16); background: rgba(255,255,255,.05); }
+    .ask strong { display: block; font-size: 15px; color: #f0b878; margin-bottom: 4px; }
+    .ask span { font-size: 12px; color: #cfc8b8; }
+
+    /* HUD */
+    .hud {
+      position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%);
+      display: flex; align-items: center; gap: 10px; z-index: 20;
+      padding: 7px 12px; border-radius: 999px;
+      background: rgba(20,18,14,.72); color: #f6f1e5; backdrop-filter: blur(8px);
+      font-size: 12px;
+    }
+    .hud button {
+      border: 1px solid rgba(255,255,255,.18); background: transparent; color: inherit;
+      border-radius: 999px; padding: 5px 11px; cursor: pointer; font: inherit;
+    }
+    .hud button:hover { background: rgba(255,255,255,.1); }
+    .counter { font-family: var(--mono); min-width: 54px; text-align: center; }
+    .progress { position: fixed; left: 0; right: 0; bottom: 0; height: 3px; background: rgba(255,255,255,.1); z-index: 20; }
+    .progress span { display: block; height: 100%; width: 0; background: var(--accent-2); transition: width .2s ease; }
+
+    .notes-panel {
+      position: fixed; right: 18px; bottom: 70px; width: 360px; max-height: 60vh; overflow: auto;
+      padding: 16px 18px; border-radius: 12px; z-index: 30;
+      background: rgba(255,253,248,.97); color: var(--ink); border: 1px solid var(--line);
+      box-shadow: 0 18px 50px rgba(0,0,0,.3); font-size: 13px; line-height: 1.7;
+    }
+    .notes-panel[hidden] { display: none; }
+    .notes-panel h4 { margin: 0 0 6px; font-size: 12px; letter-spacing: .08em; color: var(--accent); }
+    .slide .notes { display: none; }
+
+    @media print {
+      @page { size: 13.333in 7.5in; margin: 0; }
+      html, body { display: block; background: #fff; overflow: visible; height: auto; }
+      .deck { width: 13.333in; height: auto; overflow: visible; transform: none !important; box-shadow: none; }
+      .slide { position: relative; display: block !important; width: 13.333in; height: 7.5in; page-break-after: always; break-after: page; }
+      .slide:last-child { page-break-after: auto; break-after: auto; }
+      .hud, .progress, .notes-panel { display: none !important; }
+      .slide-inner { padding: 0.58in 0.75in; }
+      h1 { font-size: 58px; }
+      h2 { font-size: 38px; }
+      p { font-size: 17px; }
+      .shot { max-height: 5.2in; }
+    }
+  </style>
+</head>
+<body>
+  <main class="deck" id="deck">
+    <!-- 1 封面 -->
+    <section class="slide dark active">
+      <div class="slide-inner cover-inner">
+        <p class="eyebrow">Open Access · Traceable · Evidence-first</p>
+        <h1>小论文 · 大智慧</h1>
+        <p class="cover-sub">可溯源的科学知识库 × 学术科普信息流</p>
+        <p class="cover-line">不只告诉你科学家发现了什么，还给你看他们是怎么证明的。</p>
+        <div class="cover-badges">
+          <span>开放获取论文</span><span>章节级溯源</span><span>许可证感知</span><span>重思辨社区</span>
+        </div>
+      </div>
+      <aside class="notes">开场：我们每天刷到大量科学结论，却很少看到结论是怎么被证明的。这个项目把开放获取论文变成可溯源的知识库，而不是又一条二手科普。</aside>
+      <div class="footer"><span>小论文 · 大智慧</span><span>01 / 12</span></div>
+    </section>
+
+    <!-- 2 痛点 -->
+    <section class="slide">
+      <div class="slide-inner">
+        <p class="eyebrow">Problem</p>
+        <h2>结论易得，证据难寻</h2>
+        <p class="muted" style="margin-bottom:24px">科学传播在三个环节同时断裂。</p>
+        <div class="grid-3">
+          <div class="card"><span class="num">01 / 大众</span><h3>二手转述</h3><p>依赖媒体与短视频，多层传播后失真；标题党与伪科学更容易获得流量。</p></div>
+          <div class="card"><span class="num">02 / 科研新手</span><h3>阅读门槛</h3><p>外文术语、实验设计、统计方法构成壁垒，长期只读摘要与结论。</p></div>
+          <div class="card"><span class="num">03 / 工具</span><h3>链路割裂</h3><p>数据库只有原文，短视频缺少论证，AI 工具又只服务专业用户。</p></div>
+        </div>
+      </div>
+      <aside class="notes">三类人、三个断点：大众看不到证据，新手读不懂证据，现有工具不把证据串起来。</aside>
+      <div class="footer"><span>问题</span><span>02 / 12</span></div>
+    </section>
+
+    <!-- 3 方案 -->
+    <section class="slide">
+      <div class="slide-inner">
+        <p class="eyebrow">Solution</p>
+        <h2>用知识库做骨架，用信息流做分发</h2>
+        <div class="layers">
+          <div class="layer"><strong>知识库层</strong><span>论文卡、概念卡、专题合集、引用与争议关系。</span></div>
+          <div class="layer"><strong>解读层</strong><span>双语摘要、论证拆解、简化演示、研究局限提示。</span></div>
+          <div class="layer"><strong>信息流层</strong><span>卡片流、学术拼图式推荐、单篇讨论区。</span></div>
+          <div class="layer"><strong>思辨层</strong><span>变量控制、适用范围、替代解释等引导问题。</span></div>
+        </div>
+        <p style="margin-top:22px"><strong>核心原则：</strong>每一条解读都能回到论文的具体章节；每一项能力都受许可证约束。</p>
+      </div>
+      <aside class="notes">不是再做一个信息流，而是用知识库做骨架、用信息流做分发。每一条内容都能回到论文的具体章节。</aside>
+      <div class="footer"><span>方案</span><span>03 / 12</span></div>
+    </section>
+
+    <!-- 4 发现页 -->
+    <section class="slide">
+      <div class="slide-inner">
+        <p class="eyebrow">Demo · Discover</p>
+        <h2>59 篇可溯源文献，公式与许可证在第一屏</h2>
+        <div class="split">
+          <div class="bullets">
+            <div class="bullet">59 篇文献、13 张概念卡、7 个专题。</div>
+            <div class="bullet">诺奖溯源 + AI 必读 Top50 两条策展线。</div>
+            <div class="bullet">每张卡片显示期刊、年份、许可证与内容类型标签。</div>
+            <div class="bullet">搜索、学科与类型筛选，不只靠推荐。</div>
+          </div>
+          <img class="shot" src="../docs/assets/preview-discover.jpg" alt="发现页">
+        </div>
+      </div>
+      <aside class="notes">首页不是“猜你喜欢”，而是可筛选、可追溯的论文卡片；公式和许可证都在第一屏。</aside>
+      <div class="footer"><span>产品演示 · 发现</span><span>04 / 12</span></div>
+    </section>
+
+    <!-- 5 详情 -->
+    <section class="slide">
+      <div class="slide-inner">
+        <p class="eyebrow">Demo · Evidence</p>
+        <h2>一篇论文的五段式证据链</h2>
+        <div class="split">
+          <div>
+            <span class="tag info">AI 辅助整理 · 待复核</span>
+            <div class="bullets" style="margin-top:14px">
+              <div class="bullet">研究假设 → 实验设计 → 核心结论 → 研究局限 → 学界争议。</div>
+              <div class="bullet">每段带章节级出处；点击 §3 记录一次“展开证据”。</div>
+              <div class="bullet">许可证能力面板逐项显示翻译、音频、改编、商业是否允许。</div>
+              <div class="bullet">不冒充人工结论，明确标注待复核。</div>
+            </div>
+          </div>
+          <img class="shot" src="../docs/assets/preview-detail.jpg" alt="论文详情">
+        </div>
+      </div>
+      <aside class="notes">以 ResNet 为例：用户不只看到“残差连接有效”，还能看到作者如何对照实验、承认哪些局限。点击 §3 就记录一次“展开证据”。</aside>
+      <div class="footer"><span>产品演示 · 证据链</span><span>05 / 12</span></div>
+    </section>
+
+    <!-- 6 许可证 -->
+    <section class="slide">
+      <div class="slide-inner">
+        <p class="eyebrow">Compliance</p>
+        <h2>合规不是免责声明，而是进入代码的规则</h2>
+        <div class="split">
+          <div class="bullets">
+            <div class="bullet">CC BY-NC：禁止商业使用，不能进入会员/付费路径。</div>
+            <div class="bullet">CC BY-ND：禁止全文翻译、改编与全文音频。</div>
+            <div class="bullet">预印本：只做元数据与评论，不做全文翻译。</div>
+            <div class="bullet">未知许可证 fail-closed：仅展示元数据。</div>
+            <div class="bullet">许可来源、复核状态与审计日志全部留痕。</div>
+          </div>
+          <img class="shot" src="../docs/assets/preview-unverified.jpg" alt="许可证待核对详情">
+        </div>
+      </div>
+      <aside class="notes">合规不是免责声明，而是进入代码的规则。每个能力逐项判断；没有确认的许可证宁可少做。</aside>
+      <div class="footer"><span>许可证</span><span>06 / 12</span></div>
+    </section>
+
+    <!-- 7 复核 -->
+    <section class="slide">
+      <div class="slide-inner">
+        <p class="eyebrow">Workflow</p>
+        <h2>复核工作台：把法务与编辑变成工作流</h2>
+        <div class="split">
+          <div class="bullets">
+            <div class="bullet">33 篇待核对、26 篇需法务复核、55 篇有受限能力。</div>
+            <div class="bullet">选择新许可证 → 立即重算能力 → 写入 review_log。</div>
+            <div class="bullet">记录许可证来源、复核历史，支持 CSV 导出。</div>
+            <div class="bullet">可选令牌保护，避免复核接口裸奔。</div>
+          </div>
+          <img class="shot" src="../docs/assets/preview-review.jpg" alt="复核工作台">
+        </div>
+      </div>
+      <aside class="notes">这把“法务/编辑”变成了可运转的工作流，而不是上线前的一次性检查。</aside>
+      <div class="footer"><span>复核工作台</span><span>07 / 12</span></div>
+    </section>
+
+    <!-- 8 指标 -->
+    <section class="slide">
+      <div class="slide-inner">
+        <p class="eyebrow">Metrics</p>
+        <h2>北极星：用户是否真的读到了证据</h2>
+        <div class="split">
+          <div class="bullets">
+            <div class="bullet">6 类匿名事件：打开、读完、展开证据、溯源点击、收藏、评论。</div>
+            <div class="bullet">同一周内「读完 + 展开证据 + 一次互动」才算读到达标。</div>
+            <div class="bullet">转化漏斗 + 12 周趋势，用于验证而不是自嗨。</div>
+            <div class="bullet">匿名、本地，不采集账号与个人信息。</div>
+          </div>
+          <img class="shot" src="../docs/assets/preview-metrics.jpg" alt="指标看板">
+        </div>
+      </div>
+      <aside class="notes">我们不追求停留时长，而看用户是否真的读到了证据。下一步用这套指标做 5 人测试。</aside>
+      <div class="footer"><span>指标</span><span>08 / 12</span></div>
+    </section>
+
+    <!-- 9 差异化 -->
+    <section class="slide">
+      <div class="slide-inner">
+        <p class="eyebrow">Differentiation</p>
+        <h2>不是又一个 AI 问答，也不是又一个论文库</h2>
+        <table>
+          <thead><tr><th>维度</th><th>通用 AI 问答</th><th>短视频科普</th><th>学术数据库</th><th>本产品</th></tr></thead>
+          <tbody>
+            <tr><td>溯源</td><td class="no">弱</td><td class="no">无</td><td>原文</td><td class="yes">章节级出处</td></tr>
+            <tr><td>许可证</td><td class="no">不可见</td><td class="no">不考虑</td><td class="no">不适用</td><td class="yes">能力逐项下发</td></tr>
+            <tr><td>结构化</td><td>对话式</td><td>故事化</td><td>文献列表</td><td class="yes">论文 × 概念 × 证据</td></tr>
+            <tr><td>面向大众</td><td class="yes">是</td><td class="yes">是</td><td class="no">否</td><td class="yes">是</td></tr>
+            <tr><td>讨论</td><td>泛化</td><td>评论区</td><td class="no">无</td><td class="yes">单篇论文讨论</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <aside class="notes">这一页回答“为什么不是 ChatGPT”：不是聊天，而是以论文为节点、可审计、受许可证约束的知识库。</aside>
+      <div class="footer"><span>差异化</span><span>09 / 12</span></div>
+    </section>
+
+    <!-- 10 进展 -->
+    <section class="slide">
+      <div class="slide-inner">
+        <p class="eyebrow">Progress</p>
+        <h2>已经跑通“文档—数据—API—前端—许可证—复核—指标”</h2>
+        <div class="stats">
+          <div class="stat"><strong>59</strong><span>篇论文（演示 18 + 本地 Top50 41）</span></div>
+          <div class="stat"><strong>21</strong><span>篇结构化解读，全部标注待复核</span></div>
+          <div class="stat"><strong>26</strong><span>项自动化测试全部通过</span></div>
+          <div class="stat"><strong>33 / 26</strong><span>待核对 / 需法务复核</span></div>
+        </div>
+        <p class="note-line">零依赖 Node + SQLite 原型；PDF 与本地语料不入仓库；解读为平台整理，非生产级 AI 流水线。</p>
+      </div>
+      <aside class="notes">59 篇、21 篇解读、26 项测试。需要诚实说明：这是原型，本地语料不公开，AI 解读还没接入生产流水线。</aside>
+      <div class="footer"><span>当前进展</span><span>10 / 12</span></div>
+    </section>
+
+    <!-- 11 路线图 -->
+    <section class="slide">
+      <div class="slide-inner">
+        <p class="eyebrow">Roadmap</p>
+        <h2>下一步用用户测试决定是否进入 M3</h2>
+        <div class="timeline">
+          <div class="phase done"><span class="phase-tag">M0 · DONE</span><h3>方案与原型</h3><p>产品/技术文档、交互原型、许可证校验器与演示脚本。</p></div>
+          <div class="phase done"><span class="phase-tag">M1 · PROTOTYPE</span><h3>最小闭环</h3><p>SQLite 数据层、API、Top50 内容、章节级解读与讨论。</p></div>
+          <div class="phase current"><span class="phase-tag">M2 · CURRENT</span><h3>知识库与指标</h3><p>概念卡、复核工作台、事件埋点与北极星看板；待 5 人测试。</p></div>
+          <div class="phase next"><span class="phase-tag">M3 · NEXT</span><h3>增长验证</h3><p>创作者投稿、推荐、机构试点、会员内测。</p></div>
+        </div>
+      </div>
+      <aside class="notes">已经跑通闭环；接下来用用户测试决定是否扩张功能，而不是继续堆模块。</aside>
+      <div class="footer"><span>路线图</span><span>11 / 12</span></div>
+    </section>
+
+    <!-- 12 结语 -->
+    <section class="slide dark">
+      <div class="slide-inner closing">
+        <p class="eyebrow">Closing</p>
+        <p class="big">一篇小论文，<br>蕴藏世间大智慧。</p>
+        <p style="max-width:760px">我们不追求直接鉴别所有学术造假，而是给普通人一套看懂科学、独立思考的工具，让严谨的科学精神走出实验室，走进大众。</p>
+        <div class="asks">
+          <div class="ask"><strong>测试用户</strong><span>5–10 名本科生、研究生、科技爱好者</span></div>
+          <div class="ask"><strong>法务 / 编辑</strong><span>抽样复核许可证与摘要、解读内容</span></div>
+          <div class="ask"><strong>试点场景</strong><span>高校图书馆、中学科学课、科普机构</span></div>
+        </div>
+      </div>
+      <aside class="notes">最后一句：我们不是论文打假平台，而是给普通人一套读懂证据的工具。谢谢。</aside>
+      <div class="footer"><span>谢谢 · 本地演示 http://localhost:8123</span><span>12 / 12</span></div>
+    </section>
+  </main>
+
+  <div class="hud">
+    <button id="prev" aria-label="上一页">←</button>
+    <span class="counter" id="counter">1 / 12</span>
+    <button id="next" aria-label="下一页">→</button>
+    <button id="notesToggle" aria-label="切换讲稿">讲稿 N</button>
+    <button id="fullscreen" aria-label="全屏">全屏 F</button>
+  </div>
+  <div class="progress"><span id="bar"></span></div>
+  <div class="notes-panel" id="notesPanel" hidden>
+    <h4>讲稿</h4>
+    <div id="notesText"></div>
+  </div>
+
+  <script>
+    (() => {
+      const deck = document.getElementById("deck");
+      const slides = Array.from(document.querySelectorAll(".slide"));
+      const counter = document.getElementById("counter");
+      const bar = document.getElementById("bar");
+      const notesPanel = document.getElementById("notesPanel");
+      const notesText = document.getElementById("notesText");
+      let index = 0;
+
+      function fitDeck() {
+        const scale = Math.min(window.innerWidth / 1340, window.innerHeight / 780, 1);
+        deck.style.transform = `scale(${scale})`;
+      }
+
+      function render() {
+        slides.forEach((slide, i) => slide.classList.toggle("active", i === index));
+        counter.textContent = `${index + 1} / ${slides.length}`;
+        bar.style.width = `${((index + 1) / slides.length) * 100}%`;
+        const notes = slides[index].querySelector(".notes");
+        notesText.textContent = notes ? notes.textContent.trim() : "（本页无讲稿）";
+        history.replaceState(null, "", `#/${index + 1}`);
+      }
+
+      function go(delta) {
+        index = Math.min(slides.length - 1, Math.max(0, index + delta));
+        render();
+      }
+
+      function toggleNotes() {
+        notesPanel.hidden = !notesPanel.hidden;
+        if (!notesPanel.hidden) render();
+      }
+
+      function fullscreen() {
+        if (!document.fullscreenElement) document.documentElement.requestFullscreen?.();
+        else document.exitFullscreen?.();
+      }
+
+      document.getElementById("prev").addEventListener("click", () => go(-1));
+      document.getElementById("next").addEventListener("click", () => go(1));
+      document.getElementById("notesToggle").addEventListener("click", toggleNotes);
+      document.getElementById("fullscreen").addEventListener("click", fullscreen);
+
+      window.addEventListener("keydown", event => {
+        if (["ArrowRight", "ArrowDown", "PageDown", " ", "Enter"].includes(event.key)) {
+          event.preventDefault(); go(1);
+        } else if (["ArrowLeft", "ArrowUp", "PageUp", "Backspace"].includes(event.key)) {
+          event.preventDefault(); go(-1);
+        } else if (event.key === "n" || event.key === "N") {
+          toggleNotes();
+        } else if (event.key === "f" || event.key === "F") {
+          fullscreen();
+        } else if (event.key === "Home") {
+          index = 0; render();
+        } else if (event.key === "End") {
+          index = slides.length - 1; render();
+        }
+      });
+
+      window.addEventListener("resize", fitDeck);
+
+      const fromHash = Number((location.hash || "").replace("#/", ""));
+      if (Number.isInteger(fromHash) && fromHash >= 1 && fromHash <= slides.length) {
+        index = fromHash - 1;
+      }
+
+      fitDeck();
+      render();
+    })();
+  </script>
+</body>
+</html>
