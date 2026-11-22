@@ -11,6 +11,7 @@
  */
 
 import { createServer as createHttpServer } from "node:http";
+import { timingSafeEqual } from "node:crypto";
 import { createReadStream, statSync } from "node:fs";
 import { extname, resolve, sep, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -615,9 +616,30 @@ function serveStatic(req, res, url) {
   createReadStream(filePath).pipe(res);
 }
 
-export function createServer(db) {
+function tokenMatches(provided, expected) {
+  const a = Buffer.from(String(provided || ""));
+  const b = Buffer.from(String(expected || ""));
+  return a.length === b.length && timingSafeEqual(a, b);
+}
+
+function isReviewAuthorized(req, token) {
+  if (!token) return true;
+  const header = req.headers.authorization || "";
+  if (header.startsWith("Bearer ") && tokenMatches(header.slice(7), token)) return true;
+  return tokenMatches(req.headers["x-review-token"], token);
+}
+
+export function createServer(db, options = {}) {
+  const reviewToken = options.reviewToken !== undefined
+    ? options.reviewToken
+    : (process.env.XLW_REVIEW_TOKEN || "");
+
   return createHttpServer((req, res) => {
     const url = new URL(req.url, `http://${req.headers.host || "localhost"}`);
+
+    if (url.pathname.startsWith("/api/review") && !isReviewAuthorized(req, reviewToken)) {
+      return sendError(res, 401, "需要复核令牌");
+    }
 
     if (url.pathname.startsWith("/api/")) {
       handleApi(db, req, res, url).catch(error => {
@@ -643,7 +665,7 @@ export function createServer(db) {
 export function startServer(db, options = {}) {
   const port = options.port !== undefined ? options.port : Number(process.env.PORT || 8787);
   const host = options.host || process.env.HOST || "127.0.0.1";
-  const server = createServer(db);
+  const server = createServer(db, { reviewToken: options.reviewToken });
 
   return new Promise((resolvePromise, reject) => {
     server.once("error", reject);
@@ -676,6 +698,11 @@ if (isMain) {
   console.log("小论文 · 大智慧 — M1 服务已启动");
   console.log(`API   ${started.url}/api/health`);
   console.log(`原型  ${started.url}/`);
+  console.log(
+    process.env.XLW_REVIEW_TOKEN
+      ? "复核  已启用令牌保护（XLW_REVIEW_TOKEN）"
+      : "复核  未启用令牌保护（本地演示）"
+  );
   console.log("停止  Ctrl+C");
   console.log("");
 

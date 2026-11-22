@@ -340,6 +340,49 @@ it("复核工作台可更新许可证并立即重算能力", async () => {
       body: JSON.stringify({ decision: "approve" })
     });
     assert.equal(missing.status, 404);
+
+    const secured = await startServer(db, {
+      port: 0,
+      host: "127.0.0.1",
+      reviewToken: "test-review-token"
+    });
+    try {
+      const denied = await fetch(secured.url + "/api/review/queue");
+      assert.equal(denied.status, 401);
+
+      const bearer = await fetch(secured.url + "/api/review/queue", {
+        headers: { Authorization: "Bearer test-review-token" }
+      });
+      assert.equal(bearer.status, 200);
+
+      const headerToken = await fetch(secured.url + "/api/review/queue", {
+        headers: { "X-Review-Token": "test-review-token" }
+      });
+      assert.equal(headerToken.status, 200);
+
+      const wrongToken = await fetch(secured.url + "/api/review/queue", {
+        headers: { Authorization: "Bearer wrong-token" }
+      });
+      assert.equal(wrongToken.status, 401);
+
+      const deniedExport = await fetch(secured.url + "/api/review/export.csv");
+      assert.equal(deniedExport.status, 401);
+
+      const allowedExport = await fetch(secured.url + "/api/review/export.csv", {
+        headers: { Authorization: "Bearer test-review-token" }
+      });
+      assert.equal(allowedExport.status, 200);
+
+      const deniedPost = await fetch(secured.url + "/api/review/einstein-1905", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ decision: "approve" })
+      });
+      assert.equal(deniedPost.status, 401);
+    } finally {
+      secured.server.closeAllConnections();
+      await new Promise(resolve => secured.server.close(resolve));
+    }
   } finally {
     started.server.closeAllConnections();
     await new Promise(resolve => started.server.close(resolve));

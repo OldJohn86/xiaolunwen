@@ -22,6 +22,7 @@ node server/server.mjs
 | `XLW_DB` | `server/data/content.db` | SQLite 文件路径 |
 | `PORT` | `8787` | 监听端口 |
 | `HOST` | `127.0.0.1` | 监听地址 |
+| `XLW_REVIEW_TOKEN` | 空 | 设置后 `/api/review*` 需要 `Authorization: Bearer <token>` 或 `X-Review-Token` |
 
 数据库文件默认被 `.gitignore` 忽略。
 
@@ -72,7 +73,7 @@ node --test tools/license-check/check.test.mjs
 
 ## 已知边界
 
-- 这是 M1/M2 骨架，不是生产后端：无账号、无鉴权、无速率限制；复核接口尤其不能直接暴露到公网。
+- 这是 M1/M2 骨架，不是生产后端：无账号、无速率限制。复核接口可用 `XLW_REVIEW_TOKEN` 做单令牌保护，但不构成完整鉴权体系，不能直接暴露到公网。
 - 使用 `node:sqlite`（Node 22 内置，实验特性），正式环境按技术方案切换 PostgreSQL。
 - 讨论区直接写库，正式上线需先审后发、敏感词与模型审核。
 - 摘要为平台整理文本，不是逐句翻译；全文翻译能力受许可证控制。

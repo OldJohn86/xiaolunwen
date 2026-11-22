@@ -346,6 +346,16 @@ main { max-width: 1240px; margin: 0 auto; padding: 28px clamp(16px, 4vw, 48px) 7
 .review-stat.is-warn strong { color: var(--red); }
 .review-stat.is-info strong { color: var(--blue); }
 .review-stat.is-ok strong { color: var(--green); }
+.review-auth {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+  margin: 16px 0 0; padding: 10px 14px;
+  border: 1px dashed var(--line-strong); border-radius: 10px;
+  background: rgba(255, 253, 248, .6); font-size: 12px; color: var(--muted);
+}
+.review-auth input {
+  padding: 6px 10px; border: 1px solid var(--line); border-radius: 8px;
+  background: #fff; font-size: 12px; min-width: 200px;
+}
 .review-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
 .review-toolbar .btn { margin-left: auto; }
 .review-list { display: grid; gap: 12px; margin-top: 16px; }

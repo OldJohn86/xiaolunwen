@@ -94,10 +94,16 @@
         <h1>复核工作台</h1>
         <p class="section-sub">集中处理许可证待核对、需法务复核与被拒绝的能力。更新许可证会立即重算可用能力，并记录复核日志。</p>
       </div>
+      <div class="review-auth">
+        <label for="reviewToken">复核令牌</label>
+        <input id="reviewToken" type="password" placeholder="未启用保护时可留空" autocomplete="off">
+        <button class="btn" id="reviewTokenSave" type="button">保存令牌</button>
+        <span id="reviewAuthNote" class="form-note">令牌仅保存在当前标签页</span>
+      </div>
       <div id="reviewSummary" class="review-summary"></div>
       <div class="review-toolbar">
         <div class="filter-group" id="reviewFilters" aria-label="复核筛选"></div>
-        <a class="btn" id="reviewExport" href="/api/review/export.csv?filter=all" download>导出 CSV</a>
+        <button class="btn" id="reviewExport" type="button">导出 CSV</button>
       </div>
       <div id="reviewList" class="review-list" aria-live="polite"></div>
     </section>

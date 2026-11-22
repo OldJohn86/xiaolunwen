@@ -66,6 +66,7 @@
     topic: null,
     apiMode: false,
     reviewFilter: "all",
+    reviewToken: readSession("xlw:review-token"),
     saved: new Set(asArray(readJSON(STORAGE_SAVED, [])))
   };
 
@@ -78,6 +79,9 @@
     reviewFilters: document.getElementById("reviewFilters"),
     reviewList: document.getElementById("reviewList"),
     reviewExport: document.getElementById("reviewExport"),
+    reviewToken: document.getElementById("reviewToken"),
+    reviewTokenSave: document.getElementById("reviewTokenSave"),
+    reviewAuthNote: document.getElementById("reviewAuthNote"),
     feed: document.getElementById("feed"),
     feedTitle: document.getElementById("feedTitle"),
     resultCount: document.getElementById("resultCount"),
@@ -114,6 +118,14 @@
 
   function writeJSON(key, value) {
     try { localStorage.setItem(key, JSON.stringify(value)); } catch { /* 隐私模式等场景忽略 */ }
+  }
+
+  function readSession(key) {
+    try { return sessionStorage.getItem(key) || ""; } catch { return ""; }
+  }
+
+  function writeSession(key, value) {
+    try { sessionStorage.setItem(key, value); } catch { /* 隐私模式等场景忽略 */ }
   }
 
   function asArray(value) {
@@ -735,13 +747,41 @@
 
   /* ---------- 复核工作台 ---------- */
 
+  function reviewFetch(path, options = {}) {
+    const headers = new Headers(options.headers || {});
+    if (state.reviewToken) headers.set("Authorization", `Bearer ${state.reviewToken}`);
+    return fetch(path, { ...options, headers });
+  }
+
   async function loadReviewQueue() {
-    const response = await fetch(
+    const response = await reviewFetch(
       `/api/review/queue?filter=${encodeURIComponent(state.reviewFilter)}`,
       { cache: "no-store" }
     );
+    if (response.status === 401) throw new Error("需要复核令牌");
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     renderReviewQueue(await response.json());
+  }
+
+  async function exportReviewCsv() {
+    const response = await reviewFetch(
+      `/api/review/export.csv?filter=${encodeURIComponent(state.reviewFilter)}`,
+      { cache: "no-store" }
+    );
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error((error.error && error.error.message) || "导出失败");
+    }
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `review-${state.reviewFilter}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+    toast("已导出 CSV");
   }
 
   function reviewItemHTML(item) {
@@ -791,9 +831,6 @@
   }
 
   function renderReviewQueue(data) {
-    if (els.reviewExport) {
-      els.reviewExport.href = `/api/review/export.csv?filter=${encodeURIComponent(state.reviewFilter)}`;
-    }
     const summary = data.summary || {};
     const stats = [
       ["total", "全部", "", summary.total],
@@ -833,7 +870,7 @@
       ? { decision: "update_license", licenseCode, note, licenseSource }
       : { decision: "approve", note, licenseSource };
 
-    const response = await fetch(`/api/review/${encodeURIComponent(id)}`, {
+    const response = await reviewFetch(`/api/review/${encodeURIComponent(id)}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload)
@@ -872,6 +909,19 @@
       if (!btn) return;
       state.reviewFilter = btn.dataset.reviewFilter;
       loadReviewQueue().catch(error => toast(error.message));
+    });
+
+    els.reviewTokenSave.addEventListener("click", () => {
+      state.reviewToken = els.reviewToken.value.trim();
+      writeSession("xlw:review-token", state.reviewToken);
+      els.reviewAuthNote.textContent = state.reviewToken
+        ? "令牌已保存到当前标签页"
+        : "未设置令牌（仅适用于未启用保护的服务）";
+      loadReviewQueue().catch(error => toast(error.message));
+    });
+
+    els.reviewExport.addEventListener("click", () => {
+      exportReviewCsv().catch(error => toast(error.message));
     });
 
     els.search.addEventListener("input", () => {
@@ -1014,6 +1064,10 @@
         : "数据来源：本地静态示例 · 使用内置许可证提示";
     }
     if (els.reviewNav) els.reviewNav.hidden = !state.apiMode;
+    if (els.reviewToken) els.reviewToken.value = state.reviewToken;
+    if (els.reviewAuthNote && state.reviewToken) {
+      els.reviewAuthNote.textContent = "已载入本标签页保存的令牌";
+    }
 
     els.statPapers.textContent = String(papers.length);
     els.statConcepts.textContent = String(asArray(DATA.concepts).length);
