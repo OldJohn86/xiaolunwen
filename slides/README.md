@@ -17,6 +17,8 @@ open slides/index.html
 | → / ↓ / Space / Enter | 下一页 |
 | ← / ↑ / Backspace | 上一页 |
 | N | 显示/隐藏讲稿 |
+| T | 开始/暂停排练计时（超过 8 分钟变红） |
+| R | 重置计时 |
 | F | 全屏 |
 | Home / End | 第一页 / 最后一页 |
 
