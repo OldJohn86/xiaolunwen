@@ -140,6 +140,12 @@
     return Array.isArray(value) ? value : [];
   }
 
+  function resetTopicHash() {
+    if (location.hash.startsWith("#/topic/")) {
+      history.replaceState(null, "", "#/discover");
+    }
+  }
+
   /* ---------- 匿名事件 ---------- */
 
   function randomId() {
@@ -318,6 +324,26 @@
       showView("discover");
       return;
     }
+    if (hash.startsWith("#/topic/")) {
+      const id = decodeURIComponent(hash.slice("#/topic/".length));
+      const topic = asArray(DATA.topics).find(item => item.id === id);
+      closeDetail(false);
+      if (!topic) {
+        history.replaceState(null, "", "#/discover");
+        showView("discover");
+        return;
+      }
+      state.topic = id;
+      state.field = "全部";
+      state.tag = "全部";
+      state.query = "";
+      state.favOnly = false;
+      if (els.search) els.search.value = "";
+      renderFilters();
+      renderFeed();
+      showView("discover");
+      return;
+    }
     if (hash === "#/knowledge") {
       closeDetail(false);
       showView("knowledge");
@@ -350,6 +376,12 @@
       return;
     }
     closeDetail(false);
+    if (state.topic) {
+      state.topic = null;
+      resetTopicHash();
+      renderFilters();
+      renderFeed();
+    }
     showView("discover");
   }
 
@@ -725,7 +757,12 @@
     readTracked = false;
     document.body.style.overflow = "";
     if (updateHash && location.hash.startsWith("#/paper/")) {
-      history.replaceState(null, "", state.view === "knowledge" ? "#/knowledge" : "#/discover");
+      let target = "#/discover";
+      if (state.view === "knowledge") target = "#/knowledge";
+      else if (state.view === "review") target = "#/review";
+      else if (state.view === "metrics") target = "#/metrics";
+      else if (state.topic) target = "#/topic/" + encodeURIComponent(state.topic);
+      history.replaceState(null, "", target);
     }
     if (lastFocused && typeof lastFocused.focus === "function") {
       lastFocused.focus({ preventScroll: true });
@@ -1041,6 +1078,7 @@
       if (!btn) return;
       state.field = btn.dataset.field;
       state.topic = null;
+      resetTopicHash();
       renderFilters();
       renderFeed();
     });
@@ -1050,6 +1088,7 @@
       if (!btn) return;
       state.tag = btn.dataset.tag;
       state.topic = null;
+      resetTopicHash();
       renderFilters();
       renderFeed();
     });
@@ -1081,6 +1120,7 @@
     els.search.addEventListener("input", () => {
       state.query = els.search.value;
       state.topic = null;
+      resetTopicHash();
       if (state.view !== "discover") {
         showView("discover");
         history.replaceState(null, "", "#/discover");
@@ -1096,6 +1136,7 @@
     els.favBtn.addEventListener("click", () => {
       state.favOnly = !state.favOnly;
       state.topic = null;
+      resetTopicHash();
       if (state.view !== "discover") {
         showView("discover");
         history.replaceState(null, "", "#/discover");
@@ -1163,18 +1204,7 @@
 
       const topicEl = event.target.closest("[data-topic]");
       if (topicEl) {
-        state.topic = topicEl.dataset.topic;
-        state.field = "全部";
-        state.tag = "全部";
-        state.query = "";
-        els.search.value = "";
-        state.favOnly = false;
-        els.favBtn.classList.remove("is-active");
-        els.favBtn.setAttribute("aria-pressed", "false");
-        renderFilters();
-        renderFeed();
-        showView("discover");
-        history.replaceState(null, "", "#/discover");
+        location.hash = "#/topic/" + encodeURIComponent(topicEl.dataset.topic);
         return;
       }
 
