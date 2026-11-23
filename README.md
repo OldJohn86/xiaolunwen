@@ -1,5 +1,7 @@
 # 小论文 · 大智慧
 
+[![CI](https://github.com/OldJohn86/xiaolunwen/actions/workflows/ci.yml/badge.svg?branch=worktree-knowledge-base-mvp)](https://github.com/OldJohn86/xiaolunwen/actions/workflows/ci.yml)
+
 一款**可溯源的科学知识库 × 学术科普信息流**应用。以开放获取（OA）论文为唯一内容根基，用 AI 把论文拆解成"假设—证据—结论—局限—争议"，让研究生、本科生、科技爱好者和普通大众都能读懂一手研究，而不只是记住二手结论。
 
 > 一句话：**不只告诉你科学家发现了什么，还给你看他们是怎么证明的。**
@@ -40,6 +42,7 @@
 .
 ├── README.md                    # 项目总览（本文件）
 ├── xiaolunwen.txt               # 原始设计方案（论文体，已补全）
+├── .github/workflows/ci.yml     # 许可证 / 完整性 / 测试质量闸门
 ├── docs/
 │   ├── 01-product-design.md     # 产品方案：用户、竞品、功能优先级、商业模式
 │   ├── 02-technical-architecture.md  # 技术架构：数据模型、AI 流水线、合规
@@ -56,6 +59,7 @@
 │   ├── license-manifest.json    # 示例文献的许可证清单
 │   └── local/                   # 本地 PDF 导入候选（gitignore，不入库）
 ├── tools/
+│   ├── check-all.sh             # 一键质量闸门（CI 与本地共用）
 │   ├── license-check/           # 可执行的许可证校验器 + 测试
 │   ├── quality-check/           # 内容完整性检查器 + 测试
 │   ├── pdf-import/              # 本地 PDF 元数据/摘要提取工具
@@ -91,10 +95,10 @@ python3 -m http.server 8080
 许可证校验器同样是零依赖的 Node 脚本：
 
 ```bash
-node tools/license-check/check.mjs content/license-manifest.json
-node tools/quality-check/check.mjs
-node --test tools/license-check/check.test.mjs tools/quality-check/check.test.mjs
+bash tools/check-all.sh
 ```
+
+`check-all.sh` 依次执行许可证校验、内容完整性检查与全部 34 项测试；任一步失败即以非零退出码结束。GitHub Actions 在每次 push/PR 自动运行同一脚本。
 
 M1 后端同为零依赖（Node 22+ 内置 SQLite）：
 
@@ -218,6 +222,7 @@ PORT=8123 node server/server.mjs
 - 论文详情显示**完整性面板**：来源类型、许可证、解读复核状态、段落溯源、撤稿监测（未接入就明确写“未接入”）。
 - “报告错误 / 质疑”入口会把焦点移到讨论区并预填【质疑】。
 - **质量闸门**：`node tools/quality-check/check.mjs`。缺出处、UNVERIFIED 文献带解读、未知许可证、概念/专题断链引用都会直接失败。
+- **CI**：`.github/workflows/ci.yml` 在每次 push/PR 运行 `bash tools/check-all.sh`（许可证 + 完整性 + 34 项测试），任一失败即阻断。
 - 完整守则见 [docs/09-integrity-policy.md](docs/09-integrity-policy.md)。
 
 ## 文档
