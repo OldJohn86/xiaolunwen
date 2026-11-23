@@ -230,7 +230,8 @@
       abstractEn: (p.abstracts && p.abstracts.en && p.abstracts.en.text) || "",
       interpretation: p.interpretation || null,
       demo: p.demo || null,
-      thinking: p.thinking || []
+      thinking: p.thinking || [],
+      review: p.review || null
     };
   }
 
@@ -568,6 +569,65 @@
     return `<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>`;
   }
 
+  function integritySection(p) {
+    const reviewStatus = p.review && p.review.status;
+    const isPreprint = p.license && p.license.spdx === "ARXIV-NONEXCLUSIVE";
+    const licensePending = p.license && p.license.spdx === "UNVERIFIED";
+    const hasInterpretation = Boolean(p.interpretation);
+
+    const rows = [
+      {
+        label: "来源类型",
+        value: isPreprint ? "预印本" : "期刊 / 会议",
+        tone: isPreprint ? "warn" : "ok",
+        note: isPreprint ? "未经同行评审，版本与许可需逐篇核对" : "以期刊或会议官方页面为准"
+      },
+      {
+        label: "许可证",
+        value: licensePending ? "待核对" : "已标注来源",
+        tone: licensePending ? "warn" : "ok",
+        note: p.license ? p.license.note || "" : "缺少许可证信息"
+      },
+      {
+        label: "结构化解读",
+        value: hasInterpretation
+          ? (reviewStatus === "reviewed" ? "已复核" : "AI 辅助整理 · 待复核")
+          : "无",
+        tone: hasInterpretation ? (reviewStatus === "reviewed" ? "ok" : "warn") : "muted",
+        note: hasInterpretation ? "五段式内容均带章节级出处" : "仅展示元数据与摘要"
+      },
+      {
+        label: "段落溯源",
+        value: hasInterpretation ? "章节级示意" : "不适用",
+        tone: hasInterpretation ? "warn" : "muted",
+        note: hasInterpretation ? "原型中的出处尚不可跳转到原文段落" : "无解读内容需要溯源"
+      },
+      {
+        label: "撤稿 / 更正",
+        value: "未接入",
+        tone: "muted",
+        note: "尚未连接撤稿与更正数据库，不能视为已核验"
+      }
+    ];
+
+    return `
+      <section class="detail-section">
+        <h3>完整性状态 <span class="hint">诚实标注，不冒充已核验</span></h3>
+        <div class="integrity-grid">
+          ${rows.map(row => `
+            <div class="integrity-item">
+              <span class="integrity-dot ${row.tone}" aria-hidden="true"></span>
+              <div>
+                <strong>${esc(row.label)}</strong>
+                <span>${esc(row.value)}</span>
+                <p>${esc(row.note)}</p>
+              </div>
+            </div>`).join("")}
+        </div>
+        <p class="form-note" style="margin:10px 0 0">完整性信息来自当前原型数据，不代表学术鉴定；撤稿、更正与原文跳转仍需后续接入。</p>
+      </section>`;
+  }
+
   function capabilitySection(p) {
     const allowed = p.license && p.license.allowed;
     if (!allowed) return "";
@@ -602,6 +662,8 @@
 
   function detailHTML(p) {
     const saved = state.saved.has(p.id);
+    const reviewStatus = p.review && p.review.status;
+    const reviewVerified = reviewStatus === "reviewed";
     const conceptNames = findConceptNames(p.id);
     const refLabel = ref => `<button type="button" class="ref" data-evidence="${esc(ref)}" title="原型示意：点击记为展开证据，上线后可定位到原文段落">${esc(ref)}</button>`;
 
@@ -617,7 +679,7 @@
 
     const interpSection = p.interpretation
       ? `<section class="detail-section">
-          <h3>AI 结构化解读 <span class="ai-label">${sparkle()}AI 辅助整理 · 待复核</span></h3>
+          <h3>AI 结构化解读 <span class="ai-label${reviewVerified ? " is-verified" : ""}">${sparkle()}AI 辅助整理 · ${reviewVerified ? "已复核" : "待复核"}</span></h3>
           <div class="interp-list">
             ${p.interpretation.map(item => `
               <div class="interp-item">
@@ -679,6 +741,7 @@
       </div>
       <div class="detail-body">
         ${abstractSection}
+        ${integritySection(p)}
         ${capabilitySection(p)}
         ${interpSection}
         ${demoSection}
@@ -700,6 +763,7 @@
         <button class="btn" data-action="copy" data-link="${esc(p.link)}">
           ${copyIcon()}复制原文链接
         </button>
+        <button class="btn" data-action="report">报告错误 / 质疑</button>
         <a class="btn" href="${esc(p.link)}" target="_blank" rel="noopener noreferrer" data-action="source">前往原文 ↗</a>
         <span class="spacer"></span>
         <span class="form-note">本内容仅为科普解读，不代表学术鉴定 · 原始结论以原文为准</span>
@@ -1174,6 +1238,18 @@
       if (sourceLink) {
         const paperId = els.detail.dataset.paperId;
         if (paperId) track("source_click", paperId, { href: sourceLink.href });
+        return;
+      }
+
+      const reportBtn = event.target.closest("[data-action='report']");
+      if (reportBtn) {
+        const input = els.detail.querySelector("#commentInput");
+        if (input) {
+          input.value = "【质疑】";
+          input.focus();
+          input.scrollIntoView({ behavior: "smooth", block: "center" });
+          toast("请在讨论区说明你质疑的依据");
+        }
         return;
       }
 

@@ -49,6 +49,7 @@
 │   ├── 06-usability-test-kit.md # 5 人可用性测试方案
 │   ├── 07-one-page-brief.md     # 一页纸项目简介
 │   ├── 08-pitch-outline.md      # 12 页答辩 PPT 大纲与讲稿
+│   ├── 09-integrity-policy.md   # 去伪存真：内容完整性守则
 │   ├── pitch-deck.pdf           # 12 页答辩 PDF
 │   └── assets/                  # README 预览图
 ├── content/
@@ -56,6 +57,7 @@
 │   └── local/                   # 本地 PDF 导入候选（gitignore，不入库）
 ├── tools/
 │   ├── license-check/           # 可执行的许可证校验器 + 测试
+│   ├── quality-check/           # 内容完整性检查器 + 测试
 │   ├── pdf-import/              # 本地 PDF 元数据/摘要提取工具
 │   └── corpus-import/           # 本地 AI Top50 语料构建工具
 ├── server/                      # M1 后端：SQLite 入库 + JSON API + 测试
@@ -90,7 +92,8 @@ python3 -m http.server 8080
 
 ```bash
 node tools/license-check/check.mjs content/license-manifest.json
-node --test tools/license-check/check.test.mjs
+node tools/quality-check/check.mjs
+node --test tools/license-check/check.test.mjs tools/quality-check/check.test.mjs
 ```
 
 M1 后端同为零依赖（Node 22+ 内置 SQLite）：
@@ -209,6 +212,14 @@ PORT=8123 node server/server.mjs
 - **内容安全**：UGC 社区接入审核与举报机制，撤稿、更正、学术不端文献同步下架并提示。
 - **简化失真**：演示内容明确标注"科普简化，非科研级复现"，不用于判定论文真伪。
 
+## 内容完整性（去伪存真）
+
+- **五条铁律**：无出处不发布、无许可不演绎、未复核不宣称、有争议要并列、撤稿或更正立即下架。
+- 论文详情显示**完整性面板**：来源类型、许可证、解读复核状态、段落溯源、撤稿监测（未接入就明确写“未接入”）。
+- “报告错误 / 质疑”入口会把焦点移到讨论区并预填【质疑】。
+- **质量闸门**：`node tools/quality-check/check.mjs`。缺出处、UNVERIFIED 文献带解读、未知许可证、概念/专题断链引用都会直接失败。
+- 完整守则见 [docs/09-integrity-policy.md](docs/09-integrity-policy.md)。
+
 ## 文档
 
 - [产品设计方案（docs/01-product-design.md）](docs/01-product-design.md)
@@ -219,6 +230,7 @@ PORT=8123 node server/server.mjs
 - [5 人可用性测试方案（docs/06-usability-test-kit.md）](docs/06-usability-test-kit.md)
 - [一页纸项目简介（docs/07-one-page-brief.md）](docs/07-one-page-brief.md)
 - [12 页答辩大纲（docs/08-pitch-outline.md）](docs/08-pitch-outline.md)
+- [去伪存真：内容完整性守则（docs/09-integrity-policy.md）](docs/09-integrity-policy.md)
 - [答辩 PDF（docs/pitch-deck.pdf）](docs/pitch-deck.pdf) · [HTML 幻灯片（slides/index.html）](slides/index.html)
 - [原始设计方案（xiaolunwen.txt）](xiaolunwen.txt)
 

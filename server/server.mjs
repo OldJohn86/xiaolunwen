@@ -137,7 +137,12 @@ function paperToCoreJson(paper) {
     interpretation,
     demo: safeParse(paper.demo_json, null),
     thinking: safeParse(paper.thinking_json, []),
-    aiGenerated: Boolean(interpretation)
+    aiGenerated: Boolean(interpretation),
+    review: {
+      status: paper.review_status || "pending",
+      note: paper.review_note || null,
+      reviewedAt: paper.reviewed_at || null
+    }
   };
 }
 
